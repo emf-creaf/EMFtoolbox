@@ -11,6 +11,8 @@ A data frame with 4 variables:
 \item{Scopes}{Reources the metadata is intended for}
 \item{Categories}{Metadata categories}
 \item{Definition}{Metadata field definition}
+\item{Allowed values}{Allowed values for the metadata field, if needed}
+\item{Example value}{Example value for those fields that don't have fixed values described in \code{Allowed values}}
 }
 }
 \usage{
