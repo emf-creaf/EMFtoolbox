@@ -1,0 +1,15 @@
+Package: EMFtoolbox
+Title: Tool Box For The EMFverse
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Victor",
+           family = "Granda",
+           role = c("aut", "cre"),
+           email = "victorgrandagarcia@gmail.com",
+           comment = c(ORCID = "0000-0002-0469-1991"))
+Description: Tool box for the EMFverse.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
