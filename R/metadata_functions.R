@@ -14,6 +14,7 @@
 #'
 #' @param ... Name-value pairs for metadata fields to modify or add to the metadata file
 #' @param .template Template file to use
+#' @param .write Logical indicating if the \code{metadata.yml} file must be written (TRUE) or not (FALSE)
 #'
 #' @return Metadata content ready to copy&paste to the \code{metadata.yml} file printed in the
 #' console and returned as a \code{yml} object.
@@ -28,7 +29,8 @@
 #' @export
 use_metadata_yml <- function(
   ...,
-  .template = system.file('metadata_templates', 'core.yml', package = 'EMFtoolbox')
+  .template = system.file('metadata_templates', 'core.yml', package = 'EMFtoolbox'),
+  .write = FALSE
 ) {
 
   # empty template
@@ -42,21 +44,27 @@ use_metadata_yml <- function(
   }
 
   # We need the lists converted to yml, add/modify fields and copy to the clipboard
-  ymlthis::as_yml(initial_state) %>%
+  metadata_yml <- ymlthis::as_yml(initial_state) %>%
     ymlthis::yml_replace(...) %>%
-    ymlthis::use_yml()
+    suppressMessages(ymlthis::use_yml())
+
+  # if write is TRUE, write it and return it, if not, just return it
+  if (isTRUE(.write)) {
+    ymlthis::use_yml_file(metadata_yml, 'metadata.yml', build_ignore = TRUE)
+  }
+
+  return(metadata_yml)
 }
 
 #' @describeIn use_metadata_yml Equivalent to using \code{use_metadata_yml} with
 #'   \code{.template = system.file('metadata_templates', 'workflow.yml', package = 'EMFtoolbox')}
 #'
 #' @export
-use_workflow_yml <- function(...) {
-  return(
-    use_metadata_yml(
-      ...,
-      .template = system.file('metadata_templates', 'workflow.yml', package = 'EMFtoolbox')
-    )
+use_workflow_yml <- function(..., .write = FALSE) {
+  use_metadata_yml(
+    ...,
+    .template = system.file('metadata_templates', 'workflow.yml', package = 'EMFtoolbox'),
+    .write = .write
   )
 }
 
@@ -64,12 +72,11 @@ use_workflow_yml <- function(...) {
 #'   \code{.template = system.file('metadata_templates', 'tech_doc.yml', package = 'EMFtoolbox')}
 #'
 #' @export
-use_techdoc_yml <- function(...) {
-  return(
-    use_metadata_yml(
-      ...,
-      .template = system.file('metadata_templates', 'tech_doc.yml', package = 'EMFtoolbox')
-    )
+use_techdoc_yml <- function(..., .write = FALSE) {
+  use_metadata_yml(
+    ...,
+    .template = system.file('metadata_templates', 'tech_doc.yml', package = 'EMFtoolbox'),
+    .write = .write
   )
 }
 
@@ -77,12 +84,11 @@ use_techdoc_yml <- function(...) {
 #'   \code{.template = system.file('metadata_templates', 'data.yml', package = 'EMFtoolbox')}
 #'
 #' @export
-use_data_yml <- function(...) {
-  return(
-    use_metadata_yml(
-      ...,
-      .template = system.file('metadata_templates', 'data.yml', package = 'EMFtoolbox')
-    )
+use_data_yml <- function(..., .write = FALSE) {
+  use_metadata_yml(
+    ...,
+    .template = system.file('metadata_templates', 'data.yml', package = 'EMFtoolbox'),
+    .write = .write
   )
 }
 
@@ -90,12 +96,11 @@ use_data_yml <- function(...) {
 #'   \code{.template = system.file('metadata_templates', 'model.yml', package = 'EMFtoolbox')}
 #'
 #' @export
-use_model_yml <- function(...) {
-  return(
-    use_metadata_yml(
-      ...,
-      .template = system.file('metadata_templates', 'model.yml', package = 'EMFtoolbox')
-    )
+use_model_yml <- function(..., .write = FALSE) {
+  use_metadata_yml(
+    ...,
+    .template = system.file('metadata_templates', 'model.yml', package = 'EMFtoolbox'),
+    .write = .write
   )
 }
 
@@ -103,12 +108,11 @@ use_model_yml <- function(...) {
 #'   \code{.template = system.file('metadata_templates', 'softwork.yml', package = 'EMFtoolbox')}
 #'
 #' @export
-use_softwork_yml <- function(...) {
-  return(
-    use_metadata_yml(
-      ...,
-      .template = system.file('metadata_templates', 'softwork.yml', package = 'EMFtoolbox')
-    )
+use_softwork_yml <- function(..., .write = FALSE) {
+  use_metadata_yml(
+    ...,
+    .template = system.file('metadata_templates', 'softwork.yml', package = 'EMFtoolbox'),
+    .write = .write
   )
 }
 

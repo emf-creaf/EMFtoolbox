@@ -11,23 +11,26 @@
 \usage{
 use_metadata_yml(
   ...,
-  .template = system.file("metadata_templates", "core.yml", package = "EMFtoolbox")
+  .template = system.file("metadata_templates", "core.yml", package = "EMFtoolbox"),
+  .write = FALSE
 )
 
-use_workflow_yml(...)
+use_workflow_yml(..., .write = FALSE)
 
-use_techdoc_yml(...)
+use_techdoc_yml(..., .write = FALSE)
 
-use_data_yml(...)
+use_data_yml(..., .write = FALSE)
 
-use_model_yml(...)
+use_model_yml(..., .write = FALSE)
 
-use_softwork_yml(...)
+use_softwork_yml(..., .write = FALSE)
 }
 \arguments{
 \item{...}{Name-value pairs for metadata fields to modify or add to the metadata file}
 
 \item{.template}{Template file to use}
+
+\item{.write}{Logical indicating if the \code{metadata.yml} file must be written (TRUE) or not (FALSE)}
 }
 \value{
 Metadata content ready to copy&paste to the \code{metadata.yml} file printed in the
