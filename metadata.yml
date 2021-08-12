@@ -1,11 +1,37 @@
-ID: ''
-emf_type: ''
+id: EMFtoolbox
+emf_type: softwork
 emf_public: false
-emf_automatized: false
+emf_automatized: true
 emf_reproducible: false
-emf_draft: true
-edges: ''
-authors: ''
-resource_link: ''
-thematic: ''
+emf_draft: false
+edges:
+- style_guide
+- development_guide
+authors:
+- vgranda
+- mcaceres
+- rmolowny
+authors_aff:
+- CREAF
+- CREAF
+- CREAF
+resource_link: 'softworks/EMFtoolbox'
+thematic: emf_internal
+tags:
+- R
+- server
+- devops
+requirements:
+- R (>= 2.10)
+date: 2021-08-11
+date_lastmod: 2021-08-11
+Package: EMFtoolbox
+Title: Tool Box For The EMFverse
+Version: 0.0.0.9000
+Description: Tool box for the EMFverse.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
 

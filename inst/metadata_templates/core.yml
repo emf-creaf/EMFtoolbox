@@ -1,5 +1,5 @@
 ---
-ID: ''
+id: ''
 emf_type: ''
 emf_public: false
 emf_automatized: false
@@ -7,6 +7,9 @@ emf_reproducible: false
 emf_draft: true
 edges: ['']
 authors: ['']
+authors_aff: ['']
 resource_link: ''
 thematic: ''
+tags: ['']
+requirements: ['']
 ---

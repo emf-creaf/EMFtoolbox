@@ -1,5 +1,5 @@
 ---
-ID: ''
+id: ''
 emf_type: 'tech_doc'
 emf_public: true
 emf_automatized: true
@@ -7,6 +7,9 @@ emf_reproducible: true
 emf_draft: true
 edges: ['']
 authors: ['']
+authors_aff: ['']
 resource_link: ''
 thematic: ''
+tags: ['']
+requirements: ['']
 ---
