@@ -70,3 +70,18 @@ resource_project_generator <- function(resource = c('workflow', 'tech_doc', 'dat
   )
   return(resource_call)
 }
+
+remove_dummy_columns <- function(con, resource) {
+  remove_dummy_cols_query <- glue::glue_sql(
+    "ALTER TABLE resources {columns*};",
+    columns = glue::glue_sql(
+      "DROP COLUMN {`resource_dummy_cols`}",
+      resource_dummy_cols = c(
+        glue::glue('dummy_{resource}_field_1'), glue::glue('dummy_{resource}_field_2')
+      ),
+      .con = con
+    ),
+    .con = con
+  )
+  DBI::dbExecute(con, remove_dummy_cols_query)
+}

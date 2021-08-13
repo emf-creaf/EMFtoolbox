@@ -3,7 +3,7 @@
 \name{use_metadata_yml}
 \alias{use_metadata_yml}
 \alias{use_workflow_yml}
-\alias{use_techdoc_yml}
+\alias{use_tech_doc_yml}
 \alias{use_data_yml}
 \alias{use_model_yml}
 \alias{use_softwork_yml}
@@ -17,7 +17,7 @@ use_metadata_yml(
 
 use_workflow_yml(..., .write = FALSE)
 
-use_techdoc_yml(..., .write = FALSE)
+use_tech_doc_yml(..., .write = FALSE)
 
 use_data_yml(..., .write = FALSE)
 
@@ -49,7 +49,7 @@ resource
 \item \code{use_workflow_yml}: Equivalent to using \code{use_metadata_yml} with
 \code{.template = system.file('metadata_templates', 'workflow.yml', package = 'EMFtoolbox')}
 
-\item \code{use_techdoc_yml}: Equivalent to using \code{use_metadata_yml} with
+\item \code{use_tech_doc_yml}: Equivalent to using \code{use_metadata_yml} with
 \code{.template = system.file('metadata_templates', 'tech_doc.yml', package = 'EMFtoolbox')}
 
 \item \code{use_data_yml}: Equivalent to using \code{use_metadata_yml} with

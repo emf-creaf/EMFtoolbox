@@ -72,7 +72,7 @@ use_workflow_yml <- function(..., .write = FALSE) {
 #'   \code{.template = system.file('metadata_templates', 'tech_doc.yml', package = 'EMFtoolbox')}
 #'
 #' @export
-use_techdoc_yml <- function(..., .write = FALSE) {
+use_tech_doc_yml <- function(..., .write = FALSE) {
   use_metadata_yml(
     ...,
     .template = system.file('metadata_templates', 'tech_doc.yml', package = 'EMFtoolbox'),
@@ -128,7 +128,9 @@ use_softwork_yml <- function(..., .write = FALSE) {
 #' @param .dry Logical indicating if this is a dry-run (no permanent modification of the database is done) or
 #'   not (permanent modification of the database is done by adding the metadata).
 #'
-#' @return Invisible TRUE if everything goes correctly.
+#' @return Invisible TRUE if update is needed and performed correctly, invisible FALSE if update is not needed
+#'   and process is performed correctly. Metadata \code{yml} object if \code{.dry} i TRUE. Error if the update
+#'   failed and there is a mismatch between the updated db tables and the metadata file.
 #'
 #' @examples
 #' collect_metadata(con = emf_database, .dry = TRUE)
@@ -160,6 +162,9 @@ collect_metadata <- function(con, .dry = TRUE) {
   # check if the new data is the same as the old data
   update_info <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)
   valid_update_list <- update_info$valid_update_list
+  if (!any(valid_update_list)) {
+    return(invisible(FALSE))
+  }
 
   # prepare and execute the queries to insert if don't exists or update if exists.
   message("  - updating the following tables:\n")
@@ -167,12 +172,14 @@ collect_metadata <- function(con, .dry = TRUE) {
   update_metadata_queries(update_tables_list, update_info, con, metadata_yml)
 
   # check the db is correctly updated (if not dry)
-  message("  - checking if updating went well\n")
+  message("  - checking if the update went well\n")
   final_check <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)$valid_update_list
 
   if (any(final_check)) {
-    ## TODO delete from resources con cascade para eliminar lo insertado si ha habido algún problema
-    stop("Some tables have not been updated, please check the database")
+    delete_resource(con, metadata_yml$id)
+    stop(glue::glue(
+      "Something happened when updating the database. Removing {metadata_yml$id} from the resources and children tables."
+    ))
   }
 
   return(invisible(TRUE))
@@ -230,6 +237,7 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
     resources_old_table = dplyr::tbl(con, 'resources') %>%
       dplyr::filter(id == resource_id) %>%
       dplyr::mutate(date = as.character(date), date_lastmod = as.character(date_lastmod)) %>%
+      dplyr::select(dplyr::any_of(names(update_tables_list$resources_update_table))) %>%
       dplyr::collect(),
     tags_old_table = dplyr::tbl(con, 'tags') %>%
       dplyr::filter(id == resource_id) %>%
@@ -381,6 +389,23 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
   return(invisible(TRUE))
 }
 
+delete_resource <- function(con, resource_id) {
+  # query
+  delete_query <- glue::glue_sql(
+    "DELETE FROM resources WHERE id = {resource_id};",
+    .con = con
+  )
+  # exec query
+  db_response <- DBI::dbExecute(con, delete_query)
+  # check response
+  if (db_response == 1L) {
+    return(invisible(TRUE))
+  } else {
+    return(invisible(FALSE))
+  }
+
+}
+
 translate_r2sql_types <- function(types) {
   dplyr::case_when(
     types == 'character' ~ 'TEXT',
@@ -388,5 +413,15 @@ translate_r2sql_types <- function(types) {
     types %in% c('numeric', 'double') ~ 'FLOAT',
     types == 'logical' ~ 'BOOL',
     TRUE ~ 'TEXT'
+  )
+}
+
+metadata_db_con <- function() {
+  pool::dbPool(
+    drv = RPostgres::Postgres(),
+    host = Sys.getenv('emf_database_host'),
+    user = Sys.getenv('emf_database_user'),
+    password = Sys.getenv('emf_database_pass'),
+    dbname = Sys.getenv('emf_database')
   )
 }

@@ -13,7 +13,9 @@ collect_metadata(con, .dry = TRUE)
 not (permanent modification of the database is done by adding the metadata).}
 }
 \value{
-Invisible TRUE if everything goes correctly.
+Invisible TRUE if update is needed and performed correctly, invisible FALSE if update is not needed
+and process is performed correctly. Metadata \code{yml} object if \code{.dry} i TRUE. Error if the update
+failed and there is a mismatch between the updated db tables and the metadata file.
 }
 \description{
 Collect metadata from yml files
