@@ -19,7 +19,12 @@ Imports:
     fs,
     rmarkdown,
     magrittr,
-    ymlthis
+    ymlthis,
+    RPostgres,
+    glue,
+    dplyr,
+    rlang,
+    purrr
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
