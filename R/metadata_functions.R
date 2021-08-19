@@ -137,8 +137,7 @@ use_softwork_yml <- function(..., .write = FALSE) {
 #' collect_metadata(con = emf_database, .dry = FALSE)
 #'
 #' @export
-collect_metadata <- function(con, .dry = TRUE) {
-
+collect_metadata <- function(con = NULL, .dry = TRUE) {
   # collect the metadata
   metadata_yml <- read_metadata_file()
 
@@ -155,6 +154,15 @@ collect_metadata <- function(con, .dry = TRUE) {
     message("Updating metadata database...\n")
   }
 
+  # create the connection if con = null
+  # (here because this way there is no connection if dry is TRUE)
+  if (is.null(con)) {
+    # connect to database
+    con <- metadata_db_con()
+    # close the connection when the function exits
+    withr::defer(pool::poolClose(con))
+  }
+
   # prepare the updating tables
   message("  - reading and preparing the updated tables\n")
   update_tables_list <- prepare_update_metadata_tables(metadata_yml)
@@ -163,6 +171,7 @@ collect_metadata <- function(con, .dry = TRUE) {
   update_info <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)
   valid_update_list <- update_info$valid_update_list
   if (!any(valid_update_list)) {
+    message("No updates needed, exiting.")
     return(invisible(FALSE))
   }
 
@@ -430,3 +439,5 @@ metadata_db_con <- function(
     dbname = dbname
   )
 }
+
+

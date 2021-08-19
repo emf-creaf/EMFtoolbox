@@ -4,7 +4,7 @@
 \alias{collect_metadata}
 \title{Collect metadata from yml files}
 \usage{
-collect_metadata(con, .dry = TRUE)
+collect_metadata(con = NULL, .dry = TRUE)
 }
 \arguments{
 \item{con}{Connection to the metadata database (DBI or pool object)}
