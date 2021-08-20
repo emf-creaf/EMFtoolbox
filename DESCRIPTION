@@ -30,7 +30,8 @@ Imports:
     usethis,
     DBI,
     stringr,
-    tibble
+    tibble,
+    dbplyr
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
