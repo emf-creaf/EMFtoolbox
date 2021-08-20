@@ -426,10 +426,10 @@ translate_r2sql_types <- function(types) {
 }
 
 metadata_db_con <- function(
-  host = Sys.getenv('emf_database_host'),
-  user = Sys.getenv('emf_database_user'),
-  password = Sys.getenv('emf_database_pass'),
-  dbname = Sys.getenv('emf_database')
+  host = Sys.getenv('EMF_DATABASE_HOST'),
+  user = Sys.getenv('EMF_DATABASE_USER'),
+  password = Sys.getenv('EMF_DATABASE_PASS'),
+  dbname = Sys.getenv('EMF_DATABASE')
 ) {
   pool::dbPool(
     drv = RPostgres::Postgres(),
