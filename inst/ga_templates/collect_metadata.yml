@@ -16,21 +16,32 @@ jobs:
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      emf_database_host: ${{ secrets.EMF_DATABASE_HOST }}
-      emf_database_user: ${{ secrets.EMF_DATABASE_USER}}
-      emf_database_pass: ${{ secrets.EMF_DATABASE_PASS}}
-      emf_database: ${{ secrets.EMF_DATABASE}}
+      EMF_DATABASE_HOST: ${{ secrets.EMF_DATABASE_HOST }}
+      EMF_DATABASE_USER: ${{ secrets.EMF_DATABASE_USER}}
+      EMF_DATABASE_PASS: ${{ secrets.EMF_DATABASE_PASS}}
+      EMF_DATABASE: ${{ secrets.EMF_DATABASE}}
 
     steps:
       - uses: actions/checkout@v2
 
       - uses: r-lib/actions/setup-r@v1
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get install -y make
+          sudo apt-get install -y libicu-dev
+          sudo apt-get install -y pandoc
+          sudo apt-get install -y libcurl4-openssl-dev
+          sudo apt-get install -y libssl-dev
+          sudo apt-get install -y git
+          sudo apt-get install -y libgit2-dev
+          sudo apt-get install -y libpq-dev
+
       - name: Install packages
         run: |
-          R -e install.packages('remotes')
-          R -e remotes::install_github('emf-creaf/EMFtoolbox')
+          R -e 'install.packages("remotes")'
+          R -e 'remotes::install_github("emf-creaf/EMFtoolbox")'
 
       - name: Collect metadata and update db
         run: |
-          R -e EMFtoolbox::collect_metadata()
+          R -e 'EMFtoolbox::collect_metadata(.dry = FALSE)'

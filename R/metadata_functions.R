@@ -177,7 +177,7 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
 
   # prepare and execute the queries to insert if don't exists or update if exists.
   message("  - updating the following tables:\n")
-  message(glue::glue("    {names(update_tables_list[valid_update_list])}\n"))
+  message(glue::glue("    {names(update_tables_list[valid_update_list])}", sep = ', '))
   update_metadata_queries(update_tables_list, update_info, con, metadata_yml)
 
   # check the db is correctly updated (if not dry)
@@ -189,6 +189,8 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
     stop(glue::glue(
       "Something happened when updating the database. Removing {metadata_yml$id} from the resources and children tables."
     ))
+  } else {
+    message("    Everything ok.")
   }
 
   return(invisible(TRUE))
