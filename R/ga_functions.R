@@ -3,9 +3,10 @@
 #' Create the file needed to use the desired EMF GA
 #'
 #' This function allows to select an EMF github action template (inst/ga_templates) to use in the resource
-#' project
+#' project.
 #'
-#' @param .template Template file name (with extension) to use
+#' @param .template Template file name (with extension) to use. If a GA exists with the used template, it will
+#'  be overwritten.
 #'
 #' @return invisible TRUE if success
 #'
@@ -19,11 +20,13 @@ use_emf_ga <- function(.template) {
   create_directory(fs::path_dir(usethis::proj_path(save_as)))
 
   # copy the contents
-  template_path <- fs::path('ga_templates', .template)
-  ga_template <- base::readLines(
-    system.file(template_path, package = 'EMFtoolbox'),
-    encoding = "UTF-8", warn = FALSE
-  )
+  template_path <- system.file(fs::path('ga_templates', .template), package = 'EMFtoolbox')
+
+  if (template_path == '') {
+    usethis::ui_stop("Template not found at {system.file(fs::path('ga_templates'), package = 'EMFtoolbox')}. Check available templates at that location.")
+  }
+
+  ga_template <- base::readLines(template_path, encoding = "UTF-8", warn = FALSE)
   usethis::write_over(save_as, ga_template)
   usethis::ui_done("Created {.template} at {usethis::ui_path(save_as)}")
   return(invisible(TRUE))

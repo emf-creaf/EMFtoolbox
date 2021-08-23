@@ -20,4 +20,6 @@ test_that("use_emf_ga works as intended", {
   )
   # no problems in overwrite
   expect_true(use_emf_ga(template))
+  # error when no template is found
+  expect_error(use_emf_ga("this_is_not_a_valid_template_name.yml"), "Template not found")
 })

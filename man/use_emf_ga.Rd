@@ -7,7 +7,8 @@
 use_emf_ga(.template)
 }
 \arguments{
-\item{.template}{Template file name (with extension) to use}
+\item{.template}{Template file name (with extension) to use. If a GA exists with the used template, it will
+be overwritten.}
 }
 \value{
 invisible TRUE if success
@@ -17,7 +18,7 @@ Create the file needed to use the desired EMF GA
 }
 \details{
 This function allows to select an EMF github action template (inst/ga_templates) to use in the resource
-project
+project.
 }
 \examples{
 use_emf_ga('collect_metadata.yml')
