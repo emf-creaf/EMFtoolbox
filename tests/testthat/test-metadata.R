@@ -37,7 +37,7 @@ withr::defer(pool::poolClose(emf_database))
 withr::defer(
   purrr::walk(
     c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork'),
-    ~ delete_resource_from_db(emf_database, .x)
+    delete_resource_from_db, con = emf_database
   )
 )
 # And also, we need to remove the dummy fields from the resources table
@@ -55,7 +55,7 @@ test_that("metadata collection helpers work properly", {
 
   # defers for when finishing
   # When we finish the unit test, we remove the dummy resource from the db
-  withr::defer(delete_resource_from_db(emf_database, metadata_collected$id))
+  withr::defer(delete_resource_from_db(metadata_collected$id, emf_database))
   # And also, we need to remove the dummy fields from the resources table
   withr::defer(remove_dummy_columns(emf_database, 'workflow'))
 
@@ -120,9 +120,9 @@ test_that("metadata collection helpers work properly", {
   expect_false(collect_metadata(emf_database, .dry = FALSE))
 
   # if we delete the resource, it must reflect on the database
-  expect_true(delete_resource_from_db(emf_database, metadata_collected$id))
+  expect_true(delete_resource_from_db(metadata_collected$id, emf_database))
   # but if we try again the resource is already deleted
-  expect_false(delete_resource_from_db(emf_database, metadata_collected$id))
+  expect_false(delete_resource_from_db(metadata_collected$id, emf_database))
   # and finally, after removing it, all the process should work from the wrapper function
   expect_true(collect_metadata(emf_database, .dry = FALSE))
 

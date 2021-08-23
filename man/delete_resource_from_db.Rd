@@ -4,12 +4,12 @@
 \alias{delete_resource_from_db}
 \title{Delete resource from db by id}
 \usage{
-delete_resource_from_db(con = NULL, resource_id)
+delete_resource_from_db(resource_id, con = NULL)
 }
 \arguments{
-\item{con}{pool object connected to the database}
-
 \item{resource_id}{character with the resource id to delete}
+
+\item{con}{pool object connected to the database}
 }
 \value{
 invisible TRUE if success. Invisible FALSE if deletion fails (no id found).

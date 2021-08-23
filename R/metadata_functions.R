@@ -185,7 +185,7 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
   final_check <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)$valid_update_list
 
   if (any(final_check)) {
-    delete_resource_from_db(con, metadata_yml$id)
+    delete_resource_from_db(metadata_yml$id, con)
     stop(glue::glue(
       "Something happened when updating the database. Removing {metadata_yml$id} from the resources and children tables."
     ))
@@ -407,12 +407,12 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
 #' This function will delete a resource by id. If not connection is provided, it automatically
 #' connect to db and defer the closing of the connection
 #'
-#' @param con pool object connected to the database
 #' @param resource_id character with the resource id to delete
+#' @param con pool object connected to the database
 #'
 #' @return invisible TRUE if success. Invisible FALSE if deletion fails (no id found).
 #' @export
-delete_resource_from_db <- function(con = NULL, resource_id) {
+delete_resource_from_db <- function(resource_id, con = NULL) {
 
   # create the connection if con = null
   # (here because this way there is no connection if dry is TRUE)
