@@ -2,7 +2,7 @@
 
 export("%>%")
 export(collect_metadata)
-export(delete_resource)
+export(delete_resource_from_db)
 export(resource_color)
 export(use_data_yml)
 export(use_emf_ga)
