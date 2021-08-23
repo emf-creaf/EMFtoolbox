@@ -432,9 +432,11 @@ delete_resource <- function(con = NULL, resource_id) {
   db_response <- DBI::dbExecute(con, delete_query)
   # check response
   if (db_response != 1L) {
+    message(glue::glue("{resource_id} can't be deleted"))
     return(invisible(FALSE))
   }
 
+  message(glue::glue("{resource_id} deleted succesfully."))
   return(invisible(TRUE))
 
 }
