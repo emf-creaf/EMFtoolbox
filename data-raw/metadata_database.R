@@ -58,10 +58,10 @@ create_queries_list <- list(
     .con = emf_database
   ),
 
-  create_edges_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS edges(
-      edge_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-      edge TEXT,
+  create_nodes_query = glue::glue_sql(
+    "CREATE TABLE IF NOT EXISTS nodes(
+      node_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      node TEXT,
       id TEXT,
       CONSTRAINT fk_resources
         FOREIGN KEY(id)
@@ -139,8 +139,8 @@ indexes_queries_list <- list(
   resources_reproducible_index = glue::glue_sql(
     "CREATE INDEX IF NOT EXISTS resources_reproducible_index ON resources(emf_reproducible);"
   ),
-  edges_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS edge_index ON edges(id);"
+  nodes_index = glue::glue(
+    "CREATE INDEX IF NOT EXISTS node_index ON nodes(id);"
   ),
   authors_index = glue::glue(
     "CREATE INDEX IF NOT EXISTS author_index ON authors(id);"
@@ -165,7 +165,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.edge
+        edgs.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -183,9 +183,9 @@ create_views_list <- list(
             GROUP BY tags.id
             ) tgs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(edge) AS edge
-            FROM edges
-            GROUP BY edges.id
+            SELECT id, array_agg(node) AS node
+            FROM nodes
+            GROUP BY nodes.id
             ) edgs USING (id)
       WHERE resources.emf_type = 'workflow';
     "
@@ -200,7 +200,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.edge
+        edgs.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -218,9 +218,9 @@ create_views_list <- list(
             GROUP BY tags.id
             ) tgs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(edge) AS edge
-            FROM edges
-            GROUP BY edges.id
+            SELECT id, array_agg(node) AS node
+            FROM nodes
+            GROUP BY nodes.id
             ) edgs USING (id)
       WHERE resources.emf_type = 'tech_doc';
     "
@@ -235,7 +235,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.edge
+        edgs.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -253,9 +253,9 @@ create_views_list <- list(
             GROUP BY tags.id
             ) tgs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(edge) AS edge
-            FROM edges
-            GROUP BY edges.id
+            SELECT id, array_agg(node) AS node
+            FROM nodes
+            GROUP BY nodes.id
             ) edgs USING (id)
       WHERE resources.emf_type = 'model';
     "
@@ -270,7 +270,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.edge
+        edgs.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -288,9 +288,9 @@ create_views_list <- list(
             GROUP BY tags.id
             ) tgs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(edge) AS edge
-            FROM edges
-            GROUP BY edges.id
+            SELECT id, array_agg(node) AS node
+            FROM nodes
+            GROUP BY nodes.id
             ) edgs USING (id)
       WHERE resources.emf_type = 'data';
     "
@@ -305,7 +305,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.edge
+        edgs.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -323,9 +323,9 @@ create_views_list <- list(
             GROUP BY tags.id
             ) tgs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(edge) AS edge
-            FROM edges
-            GROUP BY edges.id
+            SELECT id, array_agg(node) AS node
+            FROM nodes
+            GROUP BY nodes.id
             ) edgs USING (id)
       WHERE resources.emf_type = 'softwork';
     "

@@ -24,7 +24,7 @@
 #' use_metadata_yml(emf_type = 'workflow', tags = c('dummy', 'foo'))
 #' use_workflow_yml(tags = c('dummy', 'foo'))
 #' use_data_yml(tags = c('bar', 'baz'))
-#' use_model_yml(edges = c('bar', 'dummy'))
+#' use_model_yml(nodes = c('bar', 'dummy'))
 #'
 #' @export
 use_metadata_yml <- function(
@@ -211,7 +211,7 @@ prepare_update_metadata_tables <- function(metadata_yml) {
   # prepare the updating tables
   update_tables_list <- list(
     resources_update_table = metadata_yml[
-      !names(metadata_yml) %in% c('requirements', 'authors', 'authors_aff', 'tags', 'edges')
+      !names(metadata_yml) %in% c('requirements', 'authors', 'authors_aff', 'tags', 'nodes')
     ] %>%
       tibble::as_tibble(),
 
@@ -220,8 +220,8 @@ prepare_update_metadata_tables <- function(metadata_yml) {
       id = metadata_yml$id
     ),
 
-    edges_update_table = tibble::tibble(
-      edge = metadata_yml$edges,
+    nodes_update_table = tibble::tibble(
+      node = metadata_yml$nodes,
       id = metadata_yml$id
     ),
 
@@ -254,9 +254,9 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
       dplyr::filter(id == resource_id) %>%
       dplyr::select(-tag_id) %>%
       dplyr::collect(),
-    edges_old_table = dplyr::tbl(con, 'edges') %>%
+    nodes_old_table = dplyr::tbl(con, 'nodes') %>%
       dplyr::filter(id == resource_id) %>%
-      dplyr::select(-edge_id) %>%
+      dplyr::select(-node_id) %>%
       dplyr::collect(),
     authors_old_table = dplyr::tbl(con, 'authors') %>%
       dplyr::filter(id == resource_id) %>%
@@ -322,7 +322,7 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
   # This is tricky. Child tables don't have a unique id for the resource (they have with the *_id (i.e tag_id)
   # column, but we can not know that beforehand). Also, for example, for tags, we maybe want to remove some
   # tags and create other ones. So, for the resources table, must be an "upsert", inserting or updating the
-  # resource, but for the child tables (tags, requirements, edges, authors...) must be a two-step process,
+  # resource, but for the child tables (tags, requirements, nodes, authors...) must be a two-step process,
   # first deleting the old records and then creating the new ones.
   # But this must be done only in the tables that have updates, to avoid extra overhead in the db.
   resources_upsert_query <- glue::glue_sql(
@@ -342,8 +342,8 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
       "DELETE FROM tags WHERE id = {metadata_yml$id};",
       .con = con
     ),
-    delete_old_edges = glue::glue_sql(
-      "DELETE FROM edges WHERE id = {metadata_yml$id};",
+    delete_old_nodes = glue::glue_sql(
+      "DELETE FROM nodes WHERE id = {metadata_yml$id};",
       .con = con
     ),
     delete_old_authors = glue::glue_sql(
@@ -365,10 +365,10 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
       ),
       .con = con
     ),
-    insert_new_edges = glue::glue_sql(
-      "INSERT INTO edges (edge, id) VALUES {values*};",
+    insert_new_nodes = glue::glue_sql(
+      "INSERT INTO nodes (node, id) VALUES {values*};",
       values = glue::glue_sql(
-        "({update_tables_list$edges_update_table$edge}, {update_tables_list$edges_update_table$id})",
+        "({update_tables_list$nodes_update_table$node}, {update_tables_list$nodes_update_table$id})",
         .con = con
       ),
       .con = con

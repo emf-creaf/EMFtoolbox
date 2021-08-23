@@ -6,11 +6,11 @@ test_that("use_metadata_yml works as expected", {
   # update and creation
   core_yml <- suppressMessages(use_metadata_yml())
   fbb_yml <- suppressMessages(
-    use_metadata_yml(emf_type = 'workflow', edges = c('foo', 'bar', 'baz'), author_aff = 'tururu')
+    use_metadata_yml(emf_type = 'workflow', nodes = c('foo', 'bar', 'baz'), author_aff = 'tururu')
   )
   expect_identical(core_yml$emf_type, '')
   expect_identical(fbb_yml$emf_type, 'workflow')
-  expect_identical(fbb_yml$edges, c('foo', 'bar', 'baz'))
+  expect_identical(fbb_yml$nodes, c('foo', 'bar', 'baz'))
   expect_identical(fbb_yml$author_aff, 'tururu')
 
 })
@@ -81,7 +81,7 @@ test_that("metadata collection helpers work properly", {
   expect_type((update_tables_list <- prepare_update_metadata_tables(metadata_collected)), 'list')
   expect_named(
     update_tables_list, c(
-      'resources_update_table', 'tags_update_table', 'edges_update_table',
+      'resources_update_table', 'tags_update_table', 'nodes_update_table',
       'authors_update_table', 'requirements_update_table'
     )
   )
@@ -207,20 +207,20 @@ test_that("updated database is correct", {
   expect_true(all(tags_db$tag %in% c('dummy', 'tururu', 'larara')))
 
   expect_s3_class(
-    (edges_db <- dplyr::tbl(emf_database, 'edges') %>%
+    (nodes_db <- dplyr::tbl(emf_database, 'nodes') %>%
        dplyr::filter(
          id %in% c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
        ) %>%
        dplyr::collect()),
     'tbl_df'
   )
-  expect_equal(nrow(edges_db), 20) # 5 resources x 4 edges each
+  expect_equal(nrow(nodes_db), 20) # 5 resources x 4 nodes each
   expect_identical(
-    unique(edges_db$id),
+    unique(nodes_db$id),
     c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
   )
   expect_true(all(stringr::str_detect(
-    edges_db$edge, 'dummy_workflow|dummy_tech_doc|dummy_model|dummy_data|dummy_softwork'
+    nodes_db$node, 'dummy_workflow|dummy_tech_doc|dummy_model|dummy_data|dummy_softwork'
   )))
 
   expect_s3_class(

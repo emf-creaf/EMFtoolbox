@@ -4,7 +4,7 @@ emf_public: false
 emf_automatized: true
 emf_reproducible: false
 emf_draft: false
-edges:
+nodes:
 - style_guide
 - development_guide
 authors:

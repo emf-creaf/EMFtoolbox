@@ -5,7 +5,7 @@ emf_public: false
 emf_automatized: false
 emf_reproducible: false
 emf_draft: true
-edges: ['']
+nodes: ['']
 authors: ['']
 authors_aff: ['']
 resource_link: ''

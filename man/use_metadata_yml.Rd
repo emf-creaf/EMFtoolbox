@@ -75,6 +75,6 @@ use_metadata_yml()
 use_metadata_yml(emf_type = 'workflow', tags = c('dummy', 'foo'))
 use_workflow_yml(tags = c('dummy', 'foo'))
 use_data_yml(tags = c('bar', 'baz'))
-use_model_yml(edges = c('bar', 'dummy'))
+use_model_yml(nodes = c('bar', 'dummy'))
 
 }
