@@ -400,7 +400,29 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
   return(invisible(TRUE))
 }
 
-delete_resource <- function(con, resource_id) {
+#' Delete resource from db by id
+#'
+#' Delete resource form db by id
+#'
+#' This function will delete a resource by id. If not connection is provided, it automatically
+#' connect to db and defer the closing of the connection
+#'
+#' @param con pool object connected to the database
+#' @param resource_id character with the resource id to delete
+#'
+#' @return invisible TRUE if success. Invisible FALSE if deletion fails (no id found).
+#' @export
+delete_resource <- function(con = NULL, resource_id) {
+
+  # create the connection if con = null
+  # (here because this way there is no connection if dry is TRUE)
+  if (is.null(con)) {
+    # connect to database
+    con <- metadata_db_con()
+    # close the connection when the function exits
+    withr::defer(pool::poolClose(con))
+  }
+
   # query
   delete_query <- glue::glue_sql(
     "DELETE FROM resources WHERE id = {resource_id};",
@@ -409,11 +431,11 @@ delete_resource <- function(con, resource_id) {
   # exec query
   db_response <- DBI::dbExecute(con, delete_query)
   # check response
-  if (db_response == 1L) {
-    return(invisible(TRUE))
-  } else {
+  if (db_response != 1L) {
     return(invisible(FALSE))
   }
+
+  return(invisible(TRUE))
 
 }
 
