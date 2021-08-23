@@ -12,7 +12,7 @@ name: collect_metadata
 
 jobs:
   collect:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -36,6 +36,20 @@ jobs:
           sudo apt-get install -y git
           sudo apt-get install -y libgit2-dev
           sudo apt-get install -y libpq-dev
+
+      - name: Cache keys dependencies
+        run: |
+          install.packages('pkgdepends')
+          saveRDS(pkgdepends::new_pkg_deps('https://github.com/emf-creaf/EMFtoolbox')$resolve()$get_resolution(), ".github/depends.Rds", version = 2)
+          writeLines(sprintf("R-%i.%i", getRversion()$major, getRversion()$minor), ".github/R-version")
+        shell: Rscript {0}
+
+      - name: Restore R package cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-${{ hashFiles('.github/depends.Rds') }}
+          restore-keys: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-
 
       - name: Install packages
         run: |
