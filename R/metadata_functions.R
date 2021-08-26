@@ -39,12 +39,11 @@ use_metadata_yml <- function(
   # update template if provided
   if (!is.null(.template)) {
     # get the YAML metadata from provided template
-    initial_state <- .template %>%
-      rmarkdown::yaml_front_matter()
+    initial_state <- read_metadata_file(.template)
   }
 
   # We need the lists converted to yml, add/modify fields and copy to the clipboard
-  metadata_yml <- ymlthis::as_yml(initial_state) %>%
+  metadata_yml <- initial_state %>%
     ymlthis::yml_replace(...) %>%
     suppressMessages(ymlthis::use_yml())
 
