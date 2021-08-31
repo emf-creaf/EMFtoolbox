@@ -10,9 +10,9 @@ library(glue)
 ## Connect to the database
 conn <- DBI::dbConnect(
   RPostgres::Postgres(),
-  host = "65.21.120.62",
-  user = "emf",
-  password = rstudioapi::askForPassword("Database password")
+  host = Sys.getenv('EMF_DATABASE_HOST'),
+  user = Sys.getenv('EMF_DATABASE_USER'),
+  password = Sys.getenv('EMF_DATABASE_PASS')
 )
 
 ## Create the database
@@ -32,13 +32,8 @@ DBI::dbExecute(conn, create_db_query)
 ## Disconnect and connect to the new database
 DBI::dbDisconnect(conn)
 
-emf_database <- DBI::dbConnect(
-  RPostgres::Postgres(),
-  host = "65.21.120.62",
-  user = "emf",
-  password = rstudioapi::askForPassword("Database password"),
-  dbname = 'emf_metadata_dummy'
-)
+emf_database <- EMFtoolbox:::metadata_db_con()
+withr::defer(pool::poolClose(emf_database))
 
 ## Create the empty tables
 create_queries_list <- list(
@@ -53,7 +48,8 @@ create_queries_list <- list(
       thematic TEXT,
       resource_link TEXT,
       date DATE,
-      date_lastmod DATE
+      date_lastmod DATE,
+      description TEXT
     );",
     .con = emf_database
   ),
@@ -159,8 +155,13 @@ create_views_list <- list(
     "CREATE OR REPLACE VIEW public_workflows AS
       SELECT resources.id AS workflow,
         resources.thematic,
-        resources.date_lastmod AS date,
+        resources.date,
+        resources.date_lastmod,
         resources.resource_link AS link,
+        resources.emf_draft,
+        resources.description,
+        resources.emf_type,
+        resources.emf_public,
         auth.author,
         auth.author_aff,
         reqs.requirement,
@@ -194,8 +195,13 @@ create_views_list <- list(
     "CREATE OR REPLACE VIEW public_tech_docs AS
       SELECT resources.id AS tech_doc,
         resources.thematic,
-        resources.date_lastmod AS date,
+        resources.date,
+        resources.date_lastmod,
         resources.resource_link AS link,
+        resources.emf_draft,
+        resources.description,
+        resources.emf_type,
+        resources.emf_public,
         auth.author,
         auth.author_aff,
         reqs.requirement,
@@ -229,8 +235,13 @@ create_views_list <- list(
     "CREATE OR REPLACE VIEW public_models AS
       SELECT resources.id AS model,
         resources.thematic,
-        resources.date_lastmod AS date,
+        resources.date,
+        resources.date_lastmod,
         resources.resource_link AS link,
+        resources.emf_draft,
+        resources.description,
+        resources.emf_type,
+        resources.emf_public,
         auth.author,
         auth.author_aff,
         reqs.requirement,
@@ -264,8 +275,13 @@ create_views_list <- list(
     "CREATE OR REPLACE VIEW public_data AS
       SELECT resources.id AS data,
         resources.thematic,
-        resources.date_lastmod AS date,
+        resources.date,
+        resources.date_lastmod,
         resources.resource_link AS link,
+        resources.emf_draft,
+        resources.description,
+        resources.emf_type,
+        resources.emf_public,
         auth.author,
         auth.author_aff,
         reqs.requirement,
@@ -299,8 +315,13 @@ create_views_list <- list(
     "CREATE OR REPLACE VIEW public_softworks AS
       SELECT resources.id AS softwork,
         resources.thematic,
-        resources.date_lastmod AS date,
+        resources.date,
+        resources.date_lastmod,
         resources.resource_link AS link,
+        resources.emf_draft,
+        resources.description,
+        resources.emf_type,
+        resources.emf_public,
         auth.author,
         auth.author_aff,
         reqs.requirement,
@@ -363,5 +384,4 @@ DBI::dbAppendTable(
   'metadata_definitions', metadata_definitions
 )
 
-# Close the connection to the database
-DBI::dbDisconnect(emf_database)
+withr::deferred_run()
