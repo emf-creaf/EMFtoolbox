@@ -113,7 +113,7 @@ create_workflow_page <- function(
 
   # join frontmatter and fragment and write the file
   if (!fs::dir_exists(dest)) {
-    usethis::ui_info(c("Creating workflow folder at ", dest))
+    usethis::ui_info("Creating workflow folder at {dest}")
     fs::dir_create(dest)
   }
 
@@ -125,6 +125,7 @@ create_workflow_page <- function(
     lines = c(yaml_frontmatter, fragment),
     quiet = TRUE
   )
+  usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {dest}")
 
   return(invisible(TRUE))
 

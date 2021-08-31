@@ -142,7 +142,7 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
 
   # if draft, dry
   if (isTRUE(metadata_yml$emf_draft)) {
-    message("This resource is in draft mode, forcing a dry metadata collection.")
+    usethis::ui_warn("This resource is in draft mode, forcing a dry metadata collection.")
     .dry <- TRUE
   }
 
@@ -150,7 +150,7 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
   if (isTRUE(.dry)) {
     return(metadata_yml)
   } else {
-    message("Updating metadata database...\n")
+    usethis::ui_info("Updating metadata database...\n")
   }
 
   # create the connection if con = null
@@ -163,37 +163,35 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
   }
 
   # prepare the updating tables
-  message("  - reading and preparing the updated tables\n")
+  usethis::ui_info("  - reading and preparing the updated tables\n")
   update_tables_list <- prepare_update_metadata_tables(metadata_yml)
 
   # check if the new data is the same as the old data
   update_info <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)
   valid_update_list <- update_info$valid_update_list
   if (!any(valid_update_list)) {
-    message("No updates needed, exiting.")
+    usethis::ui_done("No updates needed, exiting.")
     return(invisible(FALSE))
   }
 
   # prepare and execute the queries to insert if don't exists or update if exists.
-  message("  - updating the following tables:\n")
-  message(glue::glue("    {names(update_tables_list[valid_update_list])}", sep = ', '))
+  usethis::ui_info("  - updating the following tables:\n")
+  usethis::ui_info(glue::glue("    {names(update_tables_list[valid_update_list])}", sep = ', '))
   update_metadata_queries(update_tables_list, update_info, con, metadata_yml)
 
   # check the db is correctly updated (if not dry)
-  message("  - checking if the update went well\n")
+  usethis::ui_info("  - checking if the update went well\n")
   final_check <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)$valid_update_list
 
   if (any(final_check)) {
     delete_resource_from_db(metadata_yml$id, con)
-    stop(glue::glue(
+    usethis::ui_stop(
       "Something happened when updating the database. Removing {metadata_yml$id} from the resources and children tables."
-    ))
-  } else {
-    message("    Everything ok.")
+    )
   }
 
+  usethis::ui_done("Everything ok.")
   return(invisible(TRUE))
-
 }
 
 
@@ -431,11 +429,11 @@ delete_resource_from_db <- function(resource_id, con = NULL) {
   db_response <- DBI::dbExecute(con, delete_query)
   # check response
   if (db_response != 1L) {
-    message(glue::glue("{resource_id} can't be deleted"))
+    usethis::ui_warn("{resource_id} can't be deleted")
     return(invisible(FALSE))
   }
 
-  message(glue::glue("{resource_id} deleted succesfully."))
+  usethis::ui_done("{resource_id} deleted succesfully.")
   return(invisible(TRUE))
 
 }
