@@ -9,11 +9,11 @@ test_that("use_emf_ga works as intended", {
   # template is copied to the correct folder
   expect_true(use_emf_ga(template))
   expect_identical(
-    base::readLines(
+    readLines(
       system.file(fs::path("ga_templates", template), package = 'EMFtoolbox'),
       encoding = "UTF-8", warn = FALSE
     ),
-    base::readLines(
+    readLines(
       fs::path(".github/workflows", template),
       encoding = "UTF-8", warn = FALSE
     )

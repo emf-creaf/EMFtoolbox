@@ -465,4 +465,47 @@ metadata_db_con <- function(
   )
 }
 
+#' Access the public_* tables.
+#'
+#' Access to the public resources tables
+#'
+#' @param resource_type Character indicating the type of resource to query
+#' @param ... arguments for \code{dplyr::filter} to filter the results
+#' @param .con Connection to the database (pool). NULL by default, connecting with the environment variables.
+#'
+#' @return A tibble with the public resources table queried
+#'
+#' @examples
+#' use_public_table('workflows')
+#'
+#' @export
+use_public_table <- function(
+  resource_type = c('workflows', 'tech_docs', 'models', 'data', 'softworks'),
+  ...,
+  .con = NULL
+) {
+
+  # match argument
+  resource_type <- match.arg(resource_type)
+
+  dots <- rlang::list2(...)
+
+  # connect to database if needed
+  envir <- sys.frame(sys.nframe())
+  if (is.null(.con)) {
+    usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
+    .con <- metadata_db_con()
+    # close the connection when the function exits
+    withr::defer(pool::poolClose(.con), envir = envir)
+  }
+
+  # get the tibble
+  res <- dplyr::tbl(.con, glue::glue("public_{resource_type}")) %>%
+    dplyr::filter(dots) %>%
+    dplyr::collect()
+  return(res)
+
+}
+
+
 

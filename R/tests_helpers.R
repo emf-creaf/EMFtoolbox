@@ -1,4 +1,4 @@
-local_temp_proj <- function(dir = tempdir(), env = parent.frame()) {
+local_temp_proj <- function(dir = emf_temp_folder(), env = parent.frame()) {
 
   # store the current project
   old_project <- usethis::proj_get()
@@ -18,7 +18,7 @@ local_temp_proj <- function(dir = tempdir(), env = parent.frame()) {
   return(dir)
 }
 
-local_resource_proj <- function(dir = tempdir(), env = parent.frame(), .resource_generator) {
+local_resource_proj <- function(dir = emf_temp_folder(), env = parent.frame(), .resource_generator) {
 
   # store the current project
   old_project <- usethis::proj_get()
