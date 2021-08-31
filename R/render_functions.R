@@ -131,6 +131,15 @@ create_workflow_page <- function(
 
 }
 
+delete_page <- function(
+  resource_id,
+  resource_type = c('workflows', 'tech_docs', 'models', 'data', 'softworks'),
+  .web_path = Sys.getenv('WEB_PATH')
+) {
+  page_path <- fs::path(.web_path, 'content', resource_type, resource_id)
+  fs::dir_delete(page_path)
+}
+
 # Capture yaml lines to write
 capture_yml <- function(yml) {
   withr::local_envvar(NO_COLOR = TRUE)

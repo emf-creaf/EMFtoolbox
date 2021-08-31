@@ -122,7 +122,7 @@ test_that("metadata collection helpers work properly", {
   # if we delete the resource, it must reflect on the database
   expect_true(delete_resource_from_db(metadata_collected$id, emf_database))
   # but if we try again the resource is already deleted
-  expect_false(delete_resource_from_db(metadata_collected$id, emf_database))
+  expect_false(suppressWarnings(delete_resource_from_db(metadata_collected$id, emf_database)))
   # and finally, after removing it, all the process should work from the wrapper function
   expect_true(collect_metadata(emf_database, .dry = FALSE))
 
