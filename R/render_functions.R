@@ -145,3 +145,50 @@ capture_yml <- function(yml) {
   withr::local_envvar(NO_COLOR = TRUE)
   utils::capture.output(print(yml))
 }
+
+#' Update pages for workflows
+#'
+#' Update pages for workflows
+#'
+#' This function is a vectorised and safe (purrr::possibly) version of \code{\link{create_workflow_page}}, and
+#' hence, it depends on a connection to the database (created from environment variables).
+#'
+#' @param resources Character vector with the resource IDs to update. Default to NULL, which retrieves all
+#' public workflows and update them
+#'
+#' @param ... Arguments for \code{\link{create_workflow_page}}, except for resource_id.
+#'
+#' @return a named list with the resources and if they were updated or not (logical)
+#'
+#' @examples
+#' update_workflow_pages(c('test_dummy_workflow', 'non_existent_workflow'))
+#'
+#' @export
+update_workflow_pages <- function(resources = NULL, ...) {
+
+  # retrieve the public workflows if resources list is null
+  if (is.null(resources)) {
+    resources <- public_workflows()[['workflow']]
+  }
+
+  # name the resources
+  if (is.null(names(resources))) {
+    names(resources) <- resources
+  }
+  # create a safe version of create_workflow_page to check the errors if any
+  create_workflow_page_safe <- purrr::possibly(create_workflow_page, FALSE, FALSE)
+  created_pages <- purrr::map(resources, create_workflow_page_safe, ...)
+  failed_pages <- created_pages[created_pages == FALSE]
+  if (length(failed_pages) > 0) {
+    usethis::ui_oops(
+      "Oops! The following workflow pages failed to compile: {glue::glue_collapse(names(failed_pages), sep = ', ', last = ' and ')}"
+    )
+  }
+  ok_pages <- created_pages[created_pages == TRUE]
+  usethis::ui_done(
+    "Succesfully updated the following workflow pages: {glue::glue_collapse(names(ok_pages), sep = ', ', last = ' and ')}"
+  )
+
+  # return all pages and their state (updated or not)
+  return(created_pages)
+}

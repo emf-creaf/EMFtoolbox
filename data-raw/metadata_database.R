@@ -166,7 +166,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.node
+        edges.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -187,7 +187,7 @@ create_views_list <- list(
             SELECT id, array_agg(node) AS node
             FROM nodes
             GROUP BY nodes.id
-            ) edgs USING (id)
+            ) edges USING (id)
       WHERE resources.emf_type = 'workflow';
     "
   ),
@@ -206,7 +206,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.node
+        edges.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -227,7 +227,7 @@ create_views_list <- list(
             SELECT id, array_agg(node) AS node
             FROM nodes
             GROUP BY nodes.id
-            ) edgs USING (id)
+            ) edges USING (id)
       WHERE resources.emf_type = 'tech_doc';
     "
   ),
@@ -246,7 +246,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.node
+        edges.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -267,7 +267,7 @@ create_views_list <- list(
             SELECT id, array_agg(node) AS node
             FROM nodes
             GROUP BY nodes.id
-            ) edgs USING (id)
+            ) edges USING (id)
       WHERE resources.emf_type = 'model';
     "
   ),
@@ -286,7 +286,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.node
+        edges.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -307,7 +307,7 @@ create_views_list <- list(
             SELECT id, array_agg(node) AS node
             FROM nodes
             GROUP BY nodes.id
-            ) edgs USING (id)
+            ) edges USING (id)
       WHERE resources.emf_type = 'data';
     "
   ),
@@ -326,7 +326,7 @@ create_views_list <- list(
         auth.author_aff,
         reqs.requirement,
         tgs.tag,
-        edgs.node
+        edges.node
       FROM resources
         LEFT JOIN (
             SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
@@ -347,7 +347,7 @@ create_views_list <- list(
             SELECT id, array_agg(node) AS node
             FROM nodes
             GROUP BY nodes.id
-            ) edgs USING (id)
+            ) edges USING (id)
       WHERE resources.emf_type = 'softwork';
     "
   )

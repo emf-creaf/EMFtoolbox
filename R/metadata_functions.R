@@ -486,24 +486,35 @@ use_public_table <- function(
   # match argument
   resource_type <- match.arg(resource_type)
 
-  dots <- rlang::list2(...)
-
   # connect to database if needed
-  envir <- sys.frame(sys.nframe())
   if (is.null(.con)) {
     usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
     .con <- metadata_db_con()
     # close the connection when the function exits
-    withr::defer(pool::poolClose(.con), envir = envir)
+    withr::defer(pool::poolClose(.con))
   }
 
   # get the tibble
   res <- dplyr::tbl(.con, glue::glue("public_{resource_type}")) %>%
-    dplyr::filter(dots) %>%
+    dplyr::filter(...) %>%
     dplyr::collect()
   return(res)
 
 }
 
-
-
+#' Retrieve the public workflows table.
+#'
+#' Retrieve the public workflows table.
+#'
+#' @param ... arguments for \code{\link{use_public_tables}} except for \code{resource_type}. If the former is
+#'   specified and error is raised.
+#'
+#' @return A tibble with the public resources table queried
+#'
+#' @examples
+#' use_public_table('workflows')
+#'
+#' @export
+public_workflows <- function(...) {
+  use_public_table(resource_type = 'workflows', ...)
+}

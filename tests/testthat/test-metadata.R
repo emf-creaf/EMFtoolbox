@@ -256,14 +256,16 @@ test_that("updated database is correct", {
 })
 
 test_that("use_public_table works as expected", {
-  expect_s3_class((public_workflows <- use_public_table('workflows', .con = emf_database)), 'tbl')
+  expect_s3_class((emf_public_workflows <- use_public_table('workflows', .con = emf_database)), 'tbl')
   expect_true(all(
     c("workflow", "author", "tag", "emf_draft", "date", "date_lastmod", "description") %in%
-      names(public_workflows)
+      names(emf_public_workflows)
   ))
   expect_s3_class((public_models <- use_public_table('models', .con = emf_database)), 'tbl')
   expect_true(all(
     c("model", "author", "tag", "emf_draft", "date", "date_lastmod", "description") %in%
       names(public_models)
   ))
+  # resource specific methods works
+  expect_identical(emf_public_workflows, public_workflows(.con = emf_database))
 })
