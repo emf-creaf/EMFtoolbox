@@ -99,7 +99,7 @@ create_workflow_page <- function(
 
   # create the yaml frontmatter from the metadata
   yaml_frontmatter <- ymlthis::as_yml(list(
-    title = resource_metadata$workflow,
+    title = resource_metadata$title,
     authors = pq__text_to_vector_parser(resource_metadata$author),
     categories = 'workflows',
     tags = pq__text_to_vector_parser(resource_metadata$tag),
