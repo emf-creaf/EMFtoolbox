@@ -17,11 +17,11 @@ conn <- DBI::dbConnect(
 
 ##############################################################################################################
 ## Delete the database (just in case)
-# delete_db_query <- glue::glue_sql(
-#   "DROP DATABASE emf_metadata_dummy;",
-#   .con = conn
-# )
-# DBI::dbExecute(conn, delete_db_query)
+delete_db_query <- glue::glue_sql(
+  "DROP DATABASE emf_metadata_dummy;",
+  .con = conn
+)
+DBI::dbExecute(conn, delete_db_query)
 ##############################################################################################################
 
 ## Create the database
@@ -51,7 +51,8 @@ create_queries_list <- list(
       resource_link TEXT,
       date DATE,
       date_lastmod DATE,
-      description TEXT
+      description TEXT,
+      title TEXT
     );",
     .con = emf_database
   ),
