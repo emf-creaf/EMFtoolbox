@@ -6,7 +6,7 @@
 \usage{
 create_workflow_page(
   resource_id,
-  fragment = render_workflow_fragment(resource_id),
+  fragment = render_html_fragment(resource_id),
   dest = fs::path(Sys.getenv("WEB_PATH"), "content", "workflows", resource_id),
   .con = NULL
 )
@@ -15,7 +15,7 @@ create_workflow_page(
 \item{resource_id}{ID of the workflow resource}
 
 \item{fragment}{HTML object with the rendered html fragment of the workflow, as obtained by
-\code{\link{render_workflow_fragment}}}
+\code{\link{render_html_fragment}}}
 
 \item{dest}{Path to the resource page tree}
 }

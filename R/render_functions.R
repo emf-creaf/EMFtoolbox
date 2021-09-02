@@ -1,20 +1,19 @@
-#' Render workflow as html fragment
+#' Render resource Rmd as html fragment
 #'
-#' Generate an html fragment with the contents of the rendered workflow
+#' Generate an html fragment with the contents of the rendered Rmd file.
+#'
+#' This function assumes that the Rmd file is called the same as the resource id
 #'
 #' @param resource_id Character with the resource ID
 #'
 #' @return html object
 #'
 #' @examples
-#' render_workflow_fragment('dummy_workflow')
+#' render_html_fragment('test_dummy_workflow')
 #'
 #' @export
-render_workflow_fragment <- function(resource_id, .envir = parent.frame()) {
+render_html_fragment <- function(resource_id, .envir = parent.frame()) {
 
-  # create local tempdir, delete afterwards. The problem here is that if we use this inside a workflow
-  # that already had created a tempdir, calling tempdir() here will return the same session tempfolder,
-  # and deleting it afterwards (when the parent frame ends). THis will make
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
 
@@ -62,7 +61,7 @@ render_workflow_fragment <- function(resource_id, .envir = parent.frame()) {
 #'
 #' @param resource_id ID of the workflow resource
 #' @param fragment HTML object with the rendered html fragment of the workflow, as obtained by
-#'   \code{\link{render_workflow_fragment}}
+#'   \code{\link{render_html_fragment}}
 #' @param dest Path to the resource page tree
 #'
 #' @return Invisible TRUE
@@ -72,7 +71,7 @@ render_workflow_fragment <- function(resource_id, .envir = parent.frame()) {
 #' @export
 create_workflow_page <- function(
   resource_id,
-  fragment = render_workflow_fragment(resource_id),
+  fragment = render_html_fragment(resource_id),
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'workflows', resource_id),
   .con = NULL
 ) {
@@ -96,6 +95,8 @@ create_workflow_page <- function(
       "{resource_id} not found in public workflows table. Stopping creation of {resource_id} page"
     )
   }
+
+  browser()
 
   # create the yaml frontmatter from the metadata
   yaml_frontmatter <- ymlthis::as_yml(list(

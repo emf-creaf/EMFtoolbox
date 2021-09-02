@@ -1,8 +1,8 @@
 # renders tests
 
-test_that('render_workflow_fragment works as expected', {
-  expect_s3_class(render_workflow_fragment('test_dummy_workflow'), 'html')
-  expect_error(render_workflow_fragment('test_dummy_workflow_not_existent'), "Message: Not Found")
+test_that('render_html_fragment works as expected', {
+  expect_s3_class(render_html_fragment('test_dummy_workflow'), 'html')
+  expect_error(render_html_fragment('test_dummy_workflow_not_existent'), "Message: Not Found")
 })
 
 # connecting to the database (and close it later)
@@ -20,7 +20,8 @@ test_that("create_workflow_page works as expected", {
   )
   expect_true(fs::file_exists(md_path))
   expect_true(any(
-    (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) == 'title: test_dummy_workflow'
+    (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
+      'title: Dummy workflow for testing'
   ))
   # expect_identical(
   #   (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE))[2],
