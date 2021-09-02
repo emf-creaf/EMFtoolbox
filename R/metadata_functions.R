@@ -198,6 +198,7 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
 # Read the metadata.yml file in the project.
 read_metadata_file <- function(yml_file = './metadata.yml') {
   readLines(yml_file) %>%
+    unique() %>%
     glue::glue_collapse(sep = '\n') %>%
     ymlthis::as_yml()
 }
