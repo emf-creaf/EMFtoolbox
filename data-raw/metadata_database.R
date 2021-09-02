@@ -156,6 +156,7 @@ create_views_list <- list(
   public_workflows = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_workflows AS
       SELECT resources.id AS workflow,
+        resources.title,
         resources.thematic,
         resources.date,
         resources.date_lastmod,
@@ -167,7 +168,7 @@ create_views_list <- list(
         auth.author,
         auth.author_aff,
         reqs.requirement,
-        tgs.tag,
+        tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
@@ -184,7 +185,7 @@ create_views_list <- list(
             SELECT id, array_agg(tag) AS tag
             FROM tags
             GROUP BY tags.id
-            ) tgs USING (id)
+            ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
             FROM nodes
@@ -196,6 +197,7 @@ create_views_list <- list(
   public_tech_docs = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_tech_docs AS
       SELECT resources.id AS tech_doc,
+        resources.title,
         resources.thematic,
         resources.date,
         resources.date_lastmod,
@@ -207,7 +209,7 @@ create_views_list <- list(
         auth.author,
         auth.author_aff,
         reqs.requirement,
-        tgs.tag,
+        tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
@@ -224,7 +226,7 @@ create_views_list <- list(
             SELECT id, array_agg(tag) AS tag
             FROM tags
             GROUP BY tags.id
-            ) tgs USING (id)
+            ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
             FROM nodes
@@ -236,6 +238,7 @@ create_views_list <- list(
   public_models = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_models AS
       SELECT resources.id AS model,
+        resources.title,
         resources.thematic,
         resources.date,
         resources.date_lastmod,
@@ -247,7 +250,7 @@ create_views_list <- list(
         auth.author,
         auth.author_aff,
         reqs.requirement,
-        tgs.tag,
+        tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
@@ -264,7 +267,7 @@ create_views_list <- list(
             SELECT id, array_agg(tag) AS tag
             FROM tags
             GROUP BY tags.id
-            ) tgs USING (id)
+            ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
             FROM nodes
@@ -276,6 +279,7 @@ create_views_list <- list(
   public_data = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_data AS
       SELECT resources.id AS data,
+        resources.title,
         resources.thematic,
         resources.date,
         resources.date_lastmod,
@@ -287,7 +291,7 @@ create_views_list <- list(
         auth.author,
         auth.author_aff,
         reqs.requirement,
-        tgs.tag,
+        tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
@@ -304,7 +308,7 @@ create_views_list <- list(
             SELECT id, array_agg(tag) AS tag
             FROM tags
             GROUP BY tags.id
-            ) tgs USING (id)
+            ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
             FROM nodes
@@ -316,6 +320,7 @@ create_views_list <- list(
   public_softworks = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_softworks AS
       SELECT resources.id AS softwork,
+        resources.title,
         resources.thematic,
         resources.date,
         resources.date_lastmod,
@@ -327,7 +332,7 @@ create_views_list <- list(
         auth.author,
         auth.author_aff,
         reqs.requirement,
-        tgs.tag,
+        tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
@@ -344,7 +349,7 @@ create_views_list <- list(
             SELECT id, array_agg(tag) AS tag
             FROM tags
             GROUP BY tags.id
-            ) tgs USING (id)
+            ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
             FROM nodes
