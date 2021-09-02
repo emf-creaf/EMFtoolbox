@@ -1,7 +1,7 @@
 # renders tests
 
 test_that('render_html_fragment works as expected', {
-  expect_s3_class(render_html_fragment('test_dummy_workflow'), 'html')
+  expect_type(render_html_fragment('test_dummy_workflow'), 'character')
   expect_error(render_html_fragment('test_dummy_workflow_not_existent'), "Message: Not Found")
 })
 
@@ -23,10 +23,6 @@ test_that("create_workflow_page works as expected", {
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
       'title: Dummy workflow for testing'
   ))
-  # expect_identical(
-  #   (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE))[2],
-  #   'title: test_dummy_workflow'
-  # )
   expect_true(any(
     file_lines == "<p>Tururu</p>"
   ))
@@ -34,6 +30,9 @@ test_that("create_workflow_page works as expected", {
   expect_error(
     create_workflow_page('test_dummy_workflow_not_existent', dest = workflow_path, .con = emf_database),
     "not found in public workflows table"
+  )
+  expect_false(
+    create_workflow_page('test_dummy_workflow', dest = workflow_path, .con = emf_database)
   )
 })
 

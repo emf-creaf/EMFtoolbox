@@ -15,7 +15,7 @@
 #' @export
 emf_temp_folder <- function() {
   folder_path <- tempfile(pattern = 'emf')
-  usethis::ui_info("Creating temporal folder at {folder_path}")
+  usethis::ui_info("Creating temporal folder at {usethis::ui_path(folder_path)}")
   fs::dir_create(folder_path)
   return(folder_path)
 }
@@ -40,4 +40,22 @@ pq__text_to_vector_parser <- function(pq__text) {
   stringr::str_remove_all(pq__text, '[{}]') %>%
     stringr::str_split(',') %>%
     purrr::flatten_chr()
+}
+
+# write file (overwritting existing file). Code for writing taken from usethis::write_over and
+# xfun::write_utf8, because usethis::write_over (which would be ideal), requires mandatory user input to
+# overwrite, with no way to avoid it.
+write_lines_utf8 <- function(lines, path) {
+  if (equal_lines_utf8(lines, path)) {
+    return(invisible(FALSE))
+  }
+  writeLines(enc2utf8(lines), path, useBytes = TRUE)
+  return(invisible(TRUE))
+}
+
+equal_lines_utf8 <- function(lines, path) {
+  if (!fs::file_exists(path)) {
+    return(FALSE)
+  }
+  identical(readLines(path, warn = FALSE, encoding = 'UTF8'), lines)
 }

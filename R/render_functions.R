@@ -5,6 +5,8 @@
 #' This function assumes that the Rmd file is called the same as the resource id
 #'
 #' @param resource_id Character with the resource ID
+#' @param .envir envir for \code{withr::defer}, default to \code{parent.frame()}
+#' @param .render_quiet Must \code{rmarkdown::render} be quiet?
 #'
 #' @return html object
 #'
@@ -12,10 +14,24 @@
 #' render_html_fragment('test_dummy_workflow')
 #'
 #' @export
-render_html_fragment <- function(resource_id, .envir = parent.frame()) {
+render_html_fragment <- function(resource_id, .envir = parent.frame(), .render_quiet = TRUE) {
 
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
+
+  # store the current project
+  old_project <- usethis::proj_get()
+
+  # get the dir
+  dir <- fs::path(temp_proj, resource_id)
+  fs::dir_create(dir)
+  # create the dir, go to the folder and do whatever it needs, but always back again to the original one when
+  # finish (defer)
+  setwd(dir)
+  withr::defer(setwd(old_project), envir = .envir)
+  # switch to new project
+  usethis::proj_set(dir, force = TRUE)
+  withr::defer(usethis::proj_set(old_project, force = TRUE), envir = .envir)
 
   # create the repo based on resource_id
   usethis::create_from_github(
@@ -26,30 +42,18 @@ render_html_fragment <- function(resource_id, .envir = parent.frame()) {
     open = FALSE
   )
 
-  # get the dir
-  dir <- fs::path(temp_proj, resource_id)
-
-  # store the current project
-  old_project <- usethis::proj_get()
-
-  # go to the folder and do whatever it needs, but always back again to the original one when finish (defer)
-  setwd(dir)
-  withr::defer(setwd(old_project), envir = .envir)
-
-  # switch to new project
-  usethis::proj_set(dir)
-  withr::defer(usethis::proj_set(old_project, force = TRUE), envir = .envir)
-
   # render the Rmd
   rmarkdown::render(
     input = glue::glue("{resource_id}.Rmd"),
     output_format = "html_fragment",
-    output_file = glue::glue("{resource_id}_fragment.html")
+    output_file = glue::glue("{resource_id}_fragment.html"),
+    quiet = .render_quiet
   )
 
   # And now return the html file.
   # We return the html as a readLines object
-  html_fragment <- htmltools::includeHTML(glue::glue("{resource_id}_fragment.html"))
+  html_fragment <- readLines(glue::glue("{resource_id}_fragment.html"), warn = FALSE, encoding = "UTF-8")
+  # html_fragment <- htmltools::includeHTML(glue::glue("{resource_id}_fragment.html"))
   return(html_fragment)
 }
 
@@ -84,10 +88,7 @@ create_workflow_page <- function(
   }
 
   # get resource metadata
-  # resource_metadata <- use_public_table('workflow', workflow == resource_id)
-  resource_metadata <- dplyr::tbl(.con, 'public_workflows') %>%
-    dplyr::filter(workflow == resource_id) %>%
-    dplyr::collect()
+  resource_metadata <- public_workflows(workflow == resource_id)
 
   # if the tibble returned has no rows, then resource does not exist and must not be created
   if (nrow(resource_metadata) < 1) {
@@ -95,8 +96,6 @@ create_workflow_page <- function(
       "{resource_id} not found in public workflows table. Stopping creation of {resource_id} page"
     )
   }
-
-  browser()
 
   # create the yaml frontmatter from the metadata
   yaml_frontmatter <- ymlthis::as_yml(list(
@@ -118,18 +117,19 @@ create_workflow_page <- function(
     fs::dir_create(dest)
   }
 
-  # we need to set up interactive to FALSE, in this caller environment (this function), to avoid api asking
-  # if the file must be overwritten.
-  rlang::local_interactive(FALSE)
-  usethis::write_over(
-    fs::path(dest, 'index.md'),
-    lines = c(yaml_frontmatter, fragment),
-    quiet = TRUE
-  )
-  usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {dest}")
+  # write file (overwritting existing file). Code for writing taken from usethis::write_over and
+  # xfun::write_utf8, because usethis::write_over (which would be ideal), requires mandatory user input to
+  # overwrite, with no way to avoid it.
+  written <- write_lines_utf8(lines = c(yaml_frontmatter, fragment), path = fs::path(dest, 'index.md'))
+
+  if (written) {
+    usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}")
+  } else {
+    usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
+    return(invisible(FALSE))
+  }
 
   return(invisible(TRUE))
-
 }
 
 delete_page <- function(
@@ -177,19 +177,22 @@ update_workflow_pages <- function(resources = NULL, ...) {
     names(resources) <- resources
   }
   # create a safe version of create_workflow_page to check the errors if any
-  create_workflow_page_safe <- purrr::possibly(create_workflow_page, FALSE, FALSE)
+  create_workflow_page_safe <- purrr::possibly(create_workflow_page, otherwise = FALSE, quiet = FALSE)
   created_pages <- purrr::map(resources, create_workflow_page_safe, ...)
   failed_pages <- created_pages[created_pages == FALSE]
   if (length(failed_pages) > 0) {
-    usethis::ui_oops(
-      "Oops! The following workflow pages failed to compile: {glue::glue_collapse(names(failed_pages), sep = ', ', last = ' and ')}"
-    )
+    usethis::ui_oops(c(
+      crayon::bold("Oops! The following workflow pages weren't updated:"),
+      "{usethis::ui_value(names(failed_pages))}"
+    ))
   }
   ok_pages <- created_pages[created_pages == TRUE]
-  usethis::ui_done(
-    "Succesfully updated the following workflow pages: {glue::glue_collapse(names(ok_pages), sep = ', ', last = ' and ')}"
-  )
-
+  if (length(ok_pages) > 0) {
+    usethis::ui_done(c(
+      crayon::bold("Succesfully updated the following workflow pages:"),
+      "{usethis::ui_value(names(ok_pages))}"
+    ))
+  }
   # return all pages and their state (updated or not)
   return(created_pages)
 }

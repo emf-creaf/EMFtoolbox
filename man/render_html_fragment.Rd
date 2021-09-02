@@ -4,10 +4,18 @@
 \alias{render_html_fragment}
 \title{Render resource Rmd as html fragment}
 \usage{
-render_html_fragment(resource_id, .envir = parent.frame())
+render_html_fragment(
+  resource_id,
+  .envir = parent.frame(),
+  .render_quiet = TRUE
+)
 }
 \arguments{
 \item{resource_id}{Character with the resource ID}
+
+\item{.envir}{envir for \code{withr::defer}, default to \code{parent.frame()}}
+
+\item{.render_quiet}{Must \code{rmarkdown::render} be quiet?}
 }
 \value{
 html object
