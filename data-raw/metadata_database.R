@@ -15,19 +15,21 @@ conn <- DBI::dbConnect(
   password = Sys.getenv('EMF_DATABASE_PASS')
 )
 
-## Create the database
-create_db_query <- glue::glue_sql(
-  "CREATE DATABASE emf_metadata_dummy;",
-  .con = conn
-)
-DBI::dbExecute(conn, create_db_query)
-
+##############################################################################################################
 ## Delete the database (just in case)
 # delete_db_query <- glue::glue_sql(
 #   "DROP DATABASE emf_metadata_dummy;",
 #   .con = conn
 # )
 # DBI::dbExecute(conn, delete_db_query)
+##############################################################################################################
+
+## Create the database
+create_db_query <- glue::glue_sql(
+  "CREATE DATABASE emf_metadata_dummy;",
+  .con = conn
+)
+DBI::dbExecute(conn, create_db_query)
 
 ## Disconnect and connect to the new database
 DBI::dbDisconnect(conn)
