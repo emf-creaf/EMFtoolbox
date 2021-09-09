@@ -5,8 +5,9 @@
 #' This function assumes that the Rmd file is called the same as the resource id
 #'
 #' @param resource_id Character with the resource ID
-#' @param .envir envir for \code{withr::defer}, default to \code{parent.frame()}
 #' @param .render_quiet Must \code{rmarkdown::render} be quiet?
+#' @param .force Should the fragment be rendered even if there is no new commit in resource repository?
+#' @param .con Connection to pass, if provided
 #'
 #' @return html object
 #'
@@ -14,33 +15,21 @@
 #' render_html_fragment('test_dummy_workflow')
 #'
 #' @export
-render_html_fragment <- function(resource_id, .envir = parent.frame(), .render_quiet = TRUE) {
+render_html_fragment <- function(resource_id, .render_quiet = TRUE, .force = FALSE, .con = NULL) {
 
-  temp_proj <- emf_temp_folder()
-  withr::defer(fs::dir_delete(temp_proj), envir = .envir)
+  # clone the repository in a temporal folder that will be cleaned afterwards
+  should_be_updated <- create_from_emf_github(resource_id, .con = .con)
 
-  # store the current project
-  old_project <- usethis::proj_get()
+  # if file does not exists, it doesn't matter if should be updated or not
+  if (!fs::file_exists(glue::glue("{resource_id}.Rmd"))) {
+    usethis::ui_oops("Oops! Something went wrong with {resource_id}")
+    usethis::ui_stop("No {resource_id}.Rmd file found in {resource_id} respository")
+  }
 
-  # get the dir
-  dir <- fs::path(temp_proj, resource_id)
-  fs::dir_create(dir)
-  # create the dir, go to the folder and do whatever it needs, but always back again to the original one when
-  # finish (defer)
-  setwd(dir)
-  withr::defer(setwd(old_project), envir = .envir)
-  # switch to new project
-  usethis::proj_set(dir, force = TRUE)
-  withr::defer(usethis::proj_set(old_project, force = TRUE), envir = .envir)
-
-  # create the repo based on resource_id
-  usethis::create_from_github(
-    repo_spec = glue::glue("emf-creaf/{resource_id}"),
-    destdir = temp_proj,
-    fork = FALSE,
-    rstudio = FALSE,
-    open = FALSE
-  )
+  # Check if the page should be updated and there is no force in play
+  if (isFALSE(should_be_updated) & isFALSE(.force)) {
+    return(invisible(FALSE))
+  }
 
   # render the Rmd
   rmarkdown::render(
@@ -67,6 +56,8 @@ render_html_fragment <- function(resource_id, .envir = parent.frame(), .render_q
 #' @param fragment HTML object with the rendered html fragment of the workflow, as obtained by
 #'   \code{\link{render_html_fragment}}
 #' @param dest Path to the resource page tree
+#' @param .con Connection to the database
+#' @param .render_quiet Logical, must the render function be quiet?
 #'
 #' @return Invisible TRUE
 #' @examples
@@ -75,26 +66,40 @@ render_html_fragment <- function(resource_id, .envir = parent.frame(), .render_q
 #' @export
 create_workflow_page <- function(
   resource_id,
-  fragment = render_html_fragment(resource_id),
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'workflows', resource_id),
-  .con = NULL
+  fragment = render_html_fragment(resource_id, .con = .con, .force = .force),
+  .con = NULL, .render_quiet = TRUE, .force = FALSE
 ) {
+
+  # first things first, check if the provided resource is a public workflow
+  # get resource metadata
+  resource_metadata <- public_workflows(workflow == resource_id, .con = .con)
+
+  # if the tibble returned has no rows, then resource does not exist and must not be created
+  if (nrow(resource_metadata) < 1) {
+    usethis::ui_oops('Oops!')
+    usethis::ui_stop(
+      "{resource_id} not found in public workflows table. Stopping creation of {resource_id} page"
+    )
+  }
+
+  # Check if dest exists, if not, not matter the commit, we need to create the page
+  if (!fs::file_exists(fs::path(dest, 'index_md'))) {
+    fragment <- render_html_fragment(resource_id, .force = TRUE, .con = .con)
+  }
+
+  # Check if the workflow page must be updated by the last commit.
+  # If there is a new commit, we start the process but check later if the fragment is different or not.
+  if (isFALSE(fragment)) {
+    usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
+    return(invisible(FALSE))
+  }
 
   # connect to database if needed
   if (is.null(.con)) {
     .con <- metadata_db_con()
     # close the connection when the function exits
     withr::defer(pool::poolClose(.con))
-  }
-
-  # get resource metadata
-  resource_metadata <- public_workflows(workflow == resource_id)
-
-  # if the tibble returned has no rows, then resource does not exist and must not be created
-  if (nrow(resource_metadata) < 1) {
-    usethis::ui_stop(
-      "{resource_id} not found in public workflows table. Stopping creation of {resource_id} page"
-    )
   }
 
   # create the yaml frontmatter from the metadata
@@ -122,14 +127,183 @@ create_workflow_page <- function(
   # overwrite, with no way to avoid it.
   written <- write_lines_utf8(lines = c(yaml_frontmatter, fragment), path = fs::path(dest, 'index.md'))
 
-  if (written) {
-    usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}")
-  } else {
+  if (!written) {
     usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
     return(invisible(FALSE))
   }
 
+  usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}")
   return(invisible(TRUE))
+}
+
+#' Render pkgdown for softworks
+#'
+#' Generate the static folder to add to the web project
+#'
+#' This function assumes that the softwork repository name is the same as the resource_id
+#'
+#' @param resource_id Character with the resource ID
+#' @param .render_quiet Must \code{pkgdown::build_site} be quiet?
+#'
+#' @return ???
+#'
+#' @examples
+#' create_softwork_page('meteospain')
+#'
+#' @export
+create_softwork_page <- function(
+  resource_id,
+  dest = fs::path(Sys.getenv('WEB_PATH'), 'static', 'softworks', resource_id),
+  .con = NULL, .render_quiet = TRUE, .force = FALSE
+) {
+
+  # first things first, check if the provided resource is a public softwork
+  if (nrow(public_softworks(softwork == resource_id, .con = .con)) < 1) {
+    usethis::ui_oops('Oops!')
+    usethis::ui_stop(
+      "{resource_id} not found in public softworks table. Stopping creation of {resource_id} page"
+    )
+  }
+
+  # clone the repository in a temporal folder that will be cleaned afterwards
+  should_be_updated <- create_from_emf_github(resource_id, .con = .con)
+
+  # if the folder does not exists, then it should be updated even if the commit is the same as in the db
+  if (!fs::dir_exists(dest)) {
+    should_be_updated <- TRUE
+    fs::dir_create(dest)
+  }
+
+  # now in a folder call as the resource, it must be the static files we need to move to the web folder
+  if (!should_be_updated & !.force) {
+    usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
+    return(invisible(FALSE))
+  }
+
+  # we need a list of pkgdown yml parameters to override
+  override_list <- list(
+    destination = resource_id,
+    template = list(package = 'EMFtoolbox'),
+    navbar = list(
+      structure = list(
+        left = c('home', 'reference', 'articles', 'news'),
+        right = c('github')
+      ),
+      components = list(
+        home = list(text = 'Back to EMF', href = '/')
+      )
+    )
+  )
+
+  # now we can render and create the folder with the resource_id name
+  usethis::ui_info("Building {resource_id} pkgdown")
+  rendering_output <- capture.output(pkgdown::build_site(override = override_list, preview = FALSE))
+  if (!.render_quiet) {
+    usethis::ui_info(rendering_output)
+  }
+
+  usethis::ui_info('Replacing old {resource_id} pkgdown folder in web project with the new build')
+  fs::dir_delete(dest)
+  fs::dir_copy(resource_id, dest)
+  usethis::ui_done("Succesfully created new build of {resource_id} at {usethis::ui_path(dest)}")
+  return(invisible(TRUE))
+
+}
+
+#' Update pages for resources
+#'
+#' Update pages for resources
+#'
+#' This function takes a resource type and a resource names list and create the pages if needed.
+#' If no resources list is supplied, all resources of the selected type are updated.
+#'
+#' @param emf_type Character with the type of resources to update
+#' @param resources Character vector with the resource IDs to update. Default to NULL, which retrieves all
+#' public workflows and update them
+#' @param ... Arguments for \code{\link{create_*_page}}, except for resource_id.
+#'
+#' @return a named list with the resources and if they were updated or not (logical)
+#'
+#' @examples
+#' update_resource_pages_by_type('workflow', c('test_dummy_workflow', 'non_existent_workflow'))
+#'
+#' @export
+update_resource_pages_by_type <- function(
+  emf_type = c('workflow', 'tech_doc', 'model', 'data', 'softwork'),
+  resources = NULL,
+  ...
+) {
+
+  emf_type <- match.arg(emf_type)
+
+  # if resources is NULL, it means all of the type provided
+  if (is.null(resources)) {
+    table_fun <- switch(
+      emf_type,
+      'workflow' = public_workflows,
+      'tech_doc' = public_tech_docs,
+      'model' = public_models,
+      'data' = public_data,
+      'softwork' = public_softworks
+    )
+    dot_args <- rlang::dots_list(...)
+    resources <- table_fun(.con = dot_args$.con)[[emf_type]]
+  }
+
+  if (length(resources) < 1) {
+    usethis::ui_oops(crayon::bold("Seems that no {emf_type} resources have been found"))
+    return(invisible(FALSE))
+  }
+
+  # info
+  usethis::ui_info("Updating the following {emf_type} pages: {usethis::ui_value(resources)}")
+
+  # name the resources
+  if (is.null(names(resources))) {
+    names(resources) <- resources
+  }
+  # create the safe version of the corresponding create_*_page function
+  create_fun <- rlang::eval_tidy(rlang::sym(glue::glue("create_{emf_type}_page")))
+  safe_fun <- purrr::possibly(create_fun, otherwise = FALSE, quiet = FALSE)
+  # create the pages
+  created_pages <- purrr::map(resources, safe_fun, ...)
+
+  failed_pages <- created_pages[created_pages == FALSE]
+  if (length(failed_pages) > 0) {
+    usethis::ui_oops(c(
+      crayon::bold("Oops! The following softwork pages weren't updated:"),
+      "{usethis::ui_value(names(failed_pages))}"
+    ))
+  }
+  ok_pages <- created_pages[created_pages == TRUE]
+  if (length(ok_pages) > 0) {
+    usethis::ui_done(c(
+      crayon::bold("Succesfully updated the following softwork pages:"),
+      "{usethis::ui_value(names(ok_pages))}"
+    ))
+  }
+  # return all pages and their state (updated or not)
+  return(created_pages)
+}
+
+#' Update all resource pages
+#'
+#' Update all resources pages if needed
+#'
+#' This function update all resources pages that need it, or all if \code{.force = TRUE})
+#'
+#' @param ... arguments to pass to the create_*_page functions.
+#'
+#' @return a list of named lists with the resources and if they were updated or not (logical)
+#'
+#' @examples
+#' update_all_resource_pages()
+#'
+#' @export
+update_all_resource_pages <- function(...) {
+  c('workflow', 'tech_doc', 'model', 'data', 'softwork') %>%
+    magrittr::set_names(., .) %>%
+    purrr::map(update_resource_pages_by_type, ...)
 }
 
 delete_page <- function(
@@ -145,54 +319,4 @@ delete_page <- function(
 capture_yml <- function(yml) {
   withr::local_envvar(NO_COLOR = TRUE)
   utils::capture.output(print(yml))
-}
-
-#' Update pages for workflows
-#'
-#' Update pages for workflows
-#'
-#' This function is a vectorised and safe (purrr::possibly) version of \code{\link{create_workflow_page}}, and
-#' hence, it depends on a connection to the database (created from environment variables).
-#'
-#' @param resources Character vector with the resource IDs to update. Default to NULL, which retrieves all
-#' public workflows and update them
-#'
-#' @param ... Arguments for \code{\link{create_workflow_page}}, except for resource_id.
-#'
-#' @return a named list with the resources and if they were updated or not (logical)
-#'
-#' @examples
-#' update_workflow_pages(c('test_dummy_workflow', 'non_existent_workflow'))
-#'
-#' @export
-update_workflow_pages <- function(resources = NULL, ...) {
-
-  # retrieve the public workflows if resources list is null
-  if (is.null(resources)) {
-    resources <- public_workflows()[['workflow']]
-  }
-
-  # name the resources
-  if (is.null(names(resources))) {
-    names(resources) <- resources
-  }
-  # create a safe version of create_workflow_page to check the errors if any
-  create_workflow_page_safe <- purrr::possibly(create_workflow_page, otherwise = FALSE, quiet = FALSE)
-  created_pages <- purrr::map(resources, create_workflow_page_safe, ...)
-  failed_pages <- created_pages[created_pages == FALSE]
-  if (length(failed_pages) > 0) {
-    usethis::ui_oops(c(
-      crayon::bold("Oops! The following workflow pages weren't updated:"),
-      "{usethis::ui_value(names(failed_pages))}"
-    ))
-  }
-  ok_pages <- created_pages[created_pages == TRUE]
-  if (length(ok_pages) > 0) {
-    usethis::ui_done(c(
-      crayon::bold("Succesfully updated the following workflow pages:"),
-      "{usethis::ui_value(names(ok_pages))}"
-    ))
-  }
-  # return all pages and their state (updated or not)
-  return(created_pages)
 }

@@ -32,7 +32,9 @@ Imports:
     stringr,
     tibble,
     dbplyr,
-    crayon
+    crayon,
+    pkgdown,
+    gert
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

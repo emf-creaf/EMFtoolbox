@@ -118,6 +118,18 @@ create_queries_list <- list(
       definition TEXT
     );",
     .con = emf_database
+  ),
+  create_resources_last_commit_query = glue::glue_sql(
+    "CREATE TABLE IF NOT EXISTS resources_last_commit(
+      hash_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      last_commit_hash TEXT,
+      id TEXT,
+      CONSTRAINT fk_resources
+        FOREIGN KEY(id)
+          REFERENCES resources(id)
+          ON DELETE CASCADE
+    );",
+    .con = emf_database
   )
 )
 
@@ -149,6 +161,9 @@ indexes_queries_list <- list(
   ),
   tags_index = glue::glue(
     "CREATE INDEX IF NOT EXISTS tag_index ON tags(id);"
+  ),
+  last_commit_index = glue::glue(
+    "CREATE INDEX IF NOT EXISTS last_commit_index ON resources_last_commit(id);"
   )
 )
 

@@ -6,16 +6,19 @@
 \usage{
 render_html_fragment(
   resource_id,
-  .envir = parent.frame(),
-  .render_quiet = TRUE
+  .render_quiet = TRUE,
+  .force = FALSE,
+  .con = NULL
 )
 }
 \arguments{
 \item{resource_id}{Character with the resource ID}
 
-\item{.envir}{envir for \code{withr::defer}, default to \code{parent.frame()}}
-
 \item{.render_quiet}{Must \code{rmarkdown::render} be quiet?}
+
+\item{.force}{Should the fragment be rendered even if there is no new commit in resource repository?}
+
+\item{.con}{Connection to pass, if provided}
 }
 \value{
 html object

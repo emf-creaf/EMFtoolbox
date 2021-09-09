@@ -5,7 +5,7 @@
 \title{Access the public_* tables.}
 \usage{
 use_public_table(
-  resource_type = c("workflows", "tech_docs", "models", "data", "softworks"),
+  resource_type = c("workflows", "tech_docs", "models", "data", "softworks", "all"),
   ...,
   .con = NULL
 )

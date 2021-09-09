@@ -479,7 +479,7 @@ metadata_db_con <- function(
 #'
 #' @export
 use_public_table <- function(
-  resource_type = c('workflows', 'tech_docs', 'models', 'data', 'softworks'),
+  resource_type = c('workflows', 'tech_docs', 'models', 'data', 'softworks', 'all'),
   ...,
   .con = NULL
 ) {
@@ -495,12 +495,18 @@ use_public_table <- function(
     withr::defer(pool::poolClose(.con))
   }
 
-  # get the tibble
-  res <- dplyr::tbl(.con, glue::glue("public_{resource_type}")) %>%
-    dplyr::filter(...) %>%
-    dplyr::collect()
-  return(res)
-
+  # all is special, we need the the resources table, instead of the public_* tables.
+  if (resource_type == 'all') {
+    res <- dplyr::tbl(.con, 'resources') %>%
+      dplyr::filter(..., emf_public == TRUE) %>%
+      dplyr::collect()
+    return(res)
+  } else {
+    res <- dplyr::tbl(.con, glue::glue("public_{resource_type}")) %>%
+      dplyr::filter(...) %>%
+      dplyr::collect()
+    return(res)
+  }
 }
 
 #' Retrieve the public workflows table.
@@ -518,4 +524,72 @@ use_public_table <- function(
 #' @export
 public_workflows <- function(...) {
   use_public_table(resource_type = 'workflows', ...)
+}
+
+#' Retrieve the public softworks table.
+#'
+#' Retrieve the public softworks table.
+#'
+#' @param ... arguments for \code{\link{use_public_tables}} except for \code{resource_type}. If the former is
+#'   specified and error is raised.
+#'
+#' @return A tibble with the public resources table queried
+#'
+#' @examples
+#' use_public_table('softworks')
+#'
+#' @export
+public_softworks <- function(...) {
+  use_public_table(resource_type = 'softworks', ...)
+}
+
+#' Retrieve the public data table.
+#'
+#' Retrieve the public data table.
+#'
+#' @param ... arguments for \code{\link{use_public_tables}} except for \code{resource_type}. If the former is
+#'   specified and error is raised.
+#'
+#' @return A tibble with the public resources table queried
+#'
+#' @examples
+#' use_public_table('data')
+#'
+#' @export
+public_data <- function(...) {
+  use_public_table(resource_type = 'data', ...)
+}
+
+#' Retrieve the public tech_docs table.
+#'
+#' Retrieve the public tech_docs table.
+#'
+#' @param ... arguments for \code{\link{use_public_tables}} except for \code{resource_type}. If the former is
+#'   specified and error is raised.
+#'
+#' @return A tibble with the public resources table queried
+#'
+#' @examples
+#' use_public_table('tech_docs')
+#'
+#' @export
+public_tech_docs <- function(...) {
+  use_public_table(resource_type = 'tech_docs', ...)
+}
+
+#' Retrieve the public models table.
+#'
+#' Retrieve the public models table.
+#'
+#' @param ... arguments for \code{\link{use_public_tables}} except for \code{resource_type}. If the former is
+#'   specified and error is raised.
+#'
+#' @return A tibble with the public resources table queried
+#'
+#' @examples
+#' use_public_table('models')
+#'
+#' @export
+public_models <- function(...) {
+  use_public_table(resource_type = 'models', ...)
 }

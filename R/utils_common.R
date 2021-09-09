@@ -59,3 +59,84 @@ equal_lines_utf8 <- function(lines, path) {
   }
   identical(readLines(path, warn = FALSE, encoding = 'UTF8'), lines)
 }
+
+#' Clone and set project from github
+#'
+#' Temporal cloned repository to work with the resource (render...)
+#'
+#' This function creates a temporal folder, clone the desired repository and set the active project on it
+#'
+#' @param resource_id Resource ID
+#' @param .envir envir for \code{withr::defer}, default to \code{parent.frame()}
+#' @param .con connection to the db
+create_from_emf_github <- function(resource_id, .envir = parent.frame(), .con = NULL) {
+  temp_proj <- emf_temp_folder()
+  withr::defer(fs::dir_delete(temp_proj), envir = .envir)
+
+  # store the current project
+  old_project <- usethis::proj_get()
+
+  # get the dir
+  dir <- fs::path(temp_proj, resource_id)
+  fs::dir_create(dir)
+  # create the dir, go to the folder and do whatever it needs, but always back again to the original one when
+  # finish (defer)
+  setwd(dir)
+  withr::defer(setwd(old_project), envir = .envir)
+  # switch to new project
+  usethis::proj_set(dir, force = TRUE)
+  withr::defer(usethis::proj_set(old_project, force = TRUE), envir = .envir)
+
+  # create the repo based on resource_id
+  usethis::create_from_github(
+    repo_spec = glue::glue("emf-creaf/{resource_id}"),
+    destdir = temp_proj,
+    fork = FALSE,
+    rstudio = FALSE,
+    open = FALSE
+  )
+
+  # last step, check the database for last commit hash, and if is equal return invisible FALSE,
+  # but if not, update the db with the last commit hash
+  # connect to database if needed
+  if (is.null(.con)) {
+    usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
+    .con <- metadata_db_con()
+    # close the connection when the function exits
+    withr::defer(pool::poolClose(.con))
+  }
+
+  return(update_resource_last_commit_db(resource_id, .con))
+
+}
+
+get_resource_last_commit_from_db <- function(resource_id, .con) {
+  dplyr::tbl(.con, 'resources_last_commit') %>%
+    dplyr::filter(id == resource_id) %>%
+    dplyr::collect() %>%
+    dplyr::pull(last_commit_hash)
+}
+
+update_resource_last_commit_db <- function(resource_id, .con) {
+  repo_last_commit <- gert::git_commit_info()$id
+  db_last_commit <- get_resource_last_commit_from_db(resource_id, .con)
+  if (identical(repo_last_commit, db_last_commit)) {
+    usethis::ui_info('{resource_id} last commit up-to-date with database')
+    return(invisible(FALSE))
+  }
+
+  usethis::ui_info('{resource_id} last commit is ahead of database, updating...')
+  update_resource_last_commit_queries <- list(
+    remove = glue::glue_sql(
+      "DELETE FROM resources_last_commit WHERE id = {resource_id};",
+      .con = .con
+    ),
+    insert = glue::glue_sql(
+      "INSERT INTO resources_last_commit (id, last_commit_hash) VALUES ({resource_id}, {repo_last_commit});",
+      .con = .con
+    )
+  )
+  purrr::walk(update_resource_last_commit_queries, ~ DBI::dbExecute(.con, .x))
+  usethis::ui_done("{resource_id} last commit succesfully updated")
+  return(invisible(TRUE))
+}

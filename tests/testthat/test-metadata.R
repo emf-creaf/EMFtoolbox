@@ -266,6 +266,12 @@ test_that("use_public_table works as expected", {
     c("model", "author", "tag", "emf_draft", "date", "date_lastmod", "description") %in%
       names(public_models)
   ))
+  expect_s3_class((all_public_resources <- use_public_table('all', .con = emf_database)), 'tbl')
+  expect_true(all(
+    c("id", "emf_type", "emf_draft", "date", "date_lastmod", "description", "title") %in%
+      names(all_public_resources)
+  ))
   # resource specific methods works
   expect_identical(emf_public_workflows, public_workflows(.con = emf_database))
+  expect_identical(use_public_table('softworks', .con = emf_database), public_softworks(.con = emf_database))
 })

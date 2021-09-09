@@ -6,18 +6,24 @@
 \usage{
 create_workflow_page(
   resource_id,
-  fragment = render_html_fragment(resource_id),
   dest = fs::path(Sys.getenv("WEB_PATH"), "content", "workflows", resource_id),
-  .con = NULL
+  fragment = render_html_fragment(resource_id, .con = .con, .force = .force),
+  .con = NULL,
+  .render_quiet = TRUE,
+  .force = FALSE
 )
 }
 \arguments{
 \item{resource_id}{ID of the workflow resource}
 
+\item{dest}{Path to the resource page tree}
+
 \item{fragment}{HTML object with the rendered html fragment of the workflow, as obtained by
 \code{\link{render_html_fragment}}}
 
-\item{dest}{Path to the resource page tree}
+\item{.con}{Connection to the database}
+
+\item{.render_quiet}{Logical, must the render function be quiet?}
 }
 \value{
 Invisible TRUE
