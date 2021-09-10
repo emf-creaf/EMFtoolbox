@@ -210,6 +210,18 @@ create_softwork_page <- function(
 
 }
 
+create_tech_doc_page <- function(...) {
+  return(FALSE)
+}
+
+create_model_page <- function(...) {
+  return(FALSE)
+}
+
+create_data_page <- function(...) {
+  return(FALSE)
+}
+
 #' Update pages for resources
 #'
 #' Update pages for resources

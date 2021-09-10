@@ -87,6 +87,7 @@ test_that("update_resource_pages_by_type works as expected", {
 })
 
 test_that("update_all_resource_pages works as expected", {
+  skip("too big, only from time to time")
   # paths
   local_web <- local_temp_proj()
   # set local envvars and remove them later
