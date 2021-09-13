@@ -66,8 +66,6 @@ create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render
     'softwork' = rlang::expr(softwork == !!resource_id)
   )
 
-  browser()
-
   # first things first, check if the provided resource is a public workflow
   # get resource metadata
   resource_metadata <- use_public_table(category, filter_expr, .con = .con)

@@ -72,12 +72,12 @@ test_that("create_tech_doc_page works as expected", {
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
       'title: Test dummy tech doc'
   ))
-  # expect_true(any(
-  #   file_lines == "<p>Tururu’s</p>"
-  # ))
+  expect_true(any(
+    file_lines == "<p>Tururu’s</p>"
+  ))
   expect_error(
     create_tech_doc_page('test_dummy_softwork', .con = emf_database),
-    "not found in public tech docs table"
+    "not found in public tech_docs table"
   )
   expect_false(
     create_tech_doc_page('test_dummy_tech_doc', .con = emf_database)

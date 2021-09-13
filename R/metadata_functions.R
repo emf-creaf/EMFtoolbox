@@ -484,8 +484,6 @@ use_public_table <- function(
   .con = NULL
 ) {
 
-  browser()
-
   # match argument
   resource_type <- match.arg(resource_type)
 
