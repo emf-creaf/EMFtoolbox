@@ -46,40 +46,37 @@ render_html_fragment <- function(resource_id, .render_quiet = TRUE, .force = FAL
   return(html_fragment)
 }
 
-#' Create a workflow page in the web project
-#'
-#' This function creates a web page for the workflow resource based on the id
-#'
-#' The path to the web can be stored in a environment variable and this function will take it automatically.
-#'
-#' @param resource_id ID of the workflow resource
-#' @param fragment HTML object with the rendered html fragment of the workflow, as obtained by
-#'   \code{\link{render_html_fragment}}
-#' @param dest Path to the resource page tree
-#' @param .con Connection to the database
-#' @param .render_quiet Logical, must the render function be quiet?
-#'
-#' @return Invisible TRUE
-#' @examples
-#' create_workflow_page('dummy_workflow')
-#'
-#' @export
-create_workflow_page <- function(
-  resource_id,
-  dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'workflows', resource_id),
-  fragment = render_html_fragment(resource_id, .con = .con, .force = .force),
-  .con = NULL, .render_quiet = TRUE, .force = FALSE
-) {
+create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render_quiet, .force) {
+  # emf_type related
+  category <- switch(
+    emf_type,
+    'workflow' = "workflows",
+    'tech_doc' = "tech_docs",
+    'model' = "models",
+    'data' = "data",
+    'softwork' = "softworks"
+  )
+
+  filter_expr <- switch(
+    emf_type,
+    'workflow' = rlang::expr(workflow == !!resource_id),
+    'tech_doc' = rlang::expr(tech_doc == !!resource_id),
+    'model' = rlang::expr(model == !!resource_id),
+    'data' = rlang::expr(data == !!resource_id),
+    'softwork' = rlang::expr(softwork == !!resource_id)
+  )
+
+  browser()
 
   # first things first, check if the provided resource is a public workflow
   # get resource metadata
-  resource_metadata <- public_workflows(workflow == resource_id, .con = .con)
+  resource_metadata <- use_public_table(category, filter_expr, .con = .con)
 
   # if the tibble returned has no rows, then resource does not exist and must not be created
   if (nrow(resource_metadata) < 1) {
     usethis::ui_oops('Oops!')
     usethis::ui_stop(
-      "{resource_id} not found in public workflows table. Stopping creation of {resource_id} page"
+      "{resource_id} not found in public {category} table. Stopping creation of {resource_id} page"
     )
   }
 
@@ -106,7 +103,7 @@ create_workflow_page <- function(
   yaml_frontmatter <- ymlthis::as_yml(list(
     title = resource_metadata$title,
     authors = pq__text_to_vector_parser(resource_metadata$author),
-    categories = 'workflows',
+    categories = category,
     tags = pq__text_to_vector_parser(resource_metadata$tag),
     draft = resource_metadata$emf_draft,
     featured = FALSE,
@@ -118,7 +115,7 @@ create_workflow_page <- function(
 
   # join frontmatter and fragment and write the file
   if (!fs::dir_exists(dest)) {
-    usethis::ui_info("Creating workflow folder at {dest}")
+    usethis::ui_info("Creating {emf_type} folder at {dest}")
     fs::dir_create(dest)
   }
 
@@ -134,6 +131,33 @@ create_workflow_page <- function(
 
   usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}")
   return(invisible(TRUE))
+}
+
+#' Create a workflow page in the web project
+#'
+#' This function creates a web page for the workflow resource based on the id
+#'
+#' The path to the web can be stored in a environment variable and this function will take it automatically.
+#'
+#' @param resource_id ID of the workflow resource
+#' @param fragment HTML object with the rendered html fragment of the resource, as obtained by
+#'   \code{\link{render_html_fragment}}
+#' @param dest Path to the resource page tree
+#' @param .con Connection to the database
+#' @param .render_quiet Logical, must the render function be quiet?
+#'
+#' @return Invisible TRUE
+#' @examples
+#' create_workflow_page('test_dummy_workflow')
+#'
+#' @export
+create_workflow_page <- function(
+  resource_id,
+  dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'workflows', resource_id),
+  fragment = render_html_fragment(resource_id, .con = .con, .force = .force),
+  .con = NULL, .render_quiet = TRUE, .force = FALSE
+) {
+  create_rmd_page('workflow', resource_id, dest, fragment, .con, .render_quiet, .force)
 }
 
 #' Render pkgdown for softworks
@@ -210,8 +234,27 @@ create_softwork_page <- function(
 
 }
 
-create_tech_doc_page <- function(...) {
-  return(FALSE)
+#' Create a technical document page in the web project
+#'
+#' This function creates a web page for the tech_doc resource based on the id
+#'
+#' The path to the web can be stored in a environment variable and this function will take it automatically.
+#'
+#' @inheritParams create_workflow_page
+#'
+#' @return invisible TRUE
+#'
+#' @examples
+#' create_tech_doc_page('test_dummy_tech_doc')
+#'
+#' @export
+create_tech_doc_page <- function(
+  resource_id,
+  dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'tech_docs', resource_id),
+  fragment = render_html_fragment(resource_id, .con = .con, .force = .force),
+  .con = NULL, .render_quiet = TRUE, .force = FALSE
+) {
+  create_rmd_page('tech_doc', resource_id, dest, fragment, .con, .render_quiet, .force)
 }
 
 create_model_page <- function(...) {

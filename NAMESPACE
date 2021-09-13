@@ -3,6 +3,7 @@
 export("%>%")
 export(collect_metadata)
 export(create_softwork_page)
+export(create_tech_doc_page)
 export(create_workflow_page)
 export(delete_resource_from_db)
 export(emf_temp_folder)

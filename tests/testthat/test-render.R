@@ -57,6 +57,33 @@ test_that("create_softwork_page works as expected", {
   expect_false(create_softwork_page('test_dummy_softwork', .con = emf_database))
 })
 
+test_that("create_tech_doc_page works as expected", {
+  # paths
+  local_web <- local_temp_proj()
+  md_path <- fs::path(local_web, 'content', 'tech_docs', 'test_dummy_tech_doc', 'index.md')
+  # set local envvars and remove them later
+  withr::local_envvar(list(WEB_PATH = local_web))
+
+  expect_true(
+    create_tech_doc_page('test_dummy_tech_doc', .con = emf_database)
+  )
+  expect_true(fs::file_exists(md_path))
+  expect_true(any(
+    (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
+      'title: Test dummy tech doc'
+  ))
+  # expect_true(any(
+  #   file_lines == "<p>Tururu’s</p>"
+  # ))
+  expect_error(
+    create_tech_doc_page('test_dummy_softwork', .con = emf_database),
+    "not found in public tech docs table"
+  )
+  expect_false(
+    create_tech_doc_page('test_dummy_tech_doc', .con = emf_database)
+  )
+})
+
 test_that("update_resource_pages_by_type works as expected", {
   # paths
   local_web <- local_temp_proj()
