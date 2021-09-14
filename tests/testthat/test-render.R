@@ -84,6 +84,54 @@ test_that("create_tech_doc_page works as expected", {
   )
 })
 
+test_that("create_model_page works as expected", {
+  # paths
+  local_web <- local_temp_proj()
+  md_path <- fs::path(local_web, 'content', 'models', 'test_dummy_model', 'index.md')
+  # set local envvars and remove them later
+  withr::local_envvar(list(WEB_PATH = local_web))
+
+  expect_true(
+    create_model_page('test_dummy_model', .con = emf_database)
+  )
+  expect_true(fs::file_exists(md_path))
+  expect_true(any(
+    (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
+      'title: Test dummy model'
+  ))
+  expect_error(
+    create_model_page('test_dummy_softwork', .con = emf_database),
+    "not found in public models table"
+  )
+  expect_false(
+    create_model_page('test_dummy_model', .con = emf_database)
+  )
+})
+
+test_that("create_data_page works as expected", {
+  # paths
+  local_web <- local_temp_proj()
+  md_path <- fs::path(local_web, 'content', 'datas', 'test_dummy_data', 'index.md')
+  # set local envvars and remove them later
+  withr::local_envvar(list(WEB_PATH = local_web))
+
+  expect_true(
+    create_data_page('test_dummy_data', .con = emf_database)
+  )
+  expect_true(fs::file_exists(md_path))
+  expect_true(any(
+    (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
+      'title: Test dummy data'
+  ))
+  expect_error(
+    create_data_page('test_dummy_softwork', .con = emf_database),
+    "not found in public datas table"
+  )
+  expect_false(
+    create_data_page('test_dummy_data', .con = emf_database)
+  )
+})
+
 test_that("update_resource_pages_by_type works as expected", {
   # paths
   local_web <- local_temp_proj()
@@ -111,6 +159,17 @@ test_that("update_resource_pages_by_type works as expected", {
   )
   expect_false(updated_softworks$non_existent_softwork)
   expect_true(updated_softworks$test_dummy_softwork)
+
+  expect_type(
+    (updated_tech_docs <- update_resource_pages_by_type(
+      'tech_doc',
+      c('test_dummy_tech_doc', 'non_existent_tech_doc'),
+      .con = emf_database, .force = TRUE
+    )),
+    'list'
+  )
+  expect_false(updated_tech_docs$non_existent_tech_doc)
+  expect_true(updated_tech_docs$test_dummy_tech_doc)
 })
 
 test_that("update_all_resource_pages works as expected", {

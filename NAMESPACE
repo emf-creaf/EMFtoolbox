@@ -2,6 +2,8 @@
 
 export("%>%")
 export(collect_metadata)
+export(create_data_page)
+export(create_model_page)
 export(create_softwork_page)
 export(create_tech_doc_page)
 export(create_workflow_page)

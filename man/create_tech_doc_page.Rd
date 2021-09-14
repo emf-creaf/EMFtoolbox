@@ -32,7 +32,7 @@ invisible TRUE
 This function creates a web page for the tech_doc resource based on the id
 }
 \details{
-The path to the web can be stored in a environment variable and this function will take it automatically.
+Tech docs can be Rmd docs or bookdown pages.
 }
 \examples{
 create_tech_doc_page('test_dummy_tech_doc')

@@ -18,7 +18,7 @@ create_softwork_page(
 \item{.render_quiet}{Must \code{pkgdown::build_site} be quiet?}
 }
 \value{
-???
+invisible TRUE
 }
 \description{
 Generate the static folder to add to the web project

@@ -46,7 +46,105 @@ render_html_fragment <- function(resource_id, .render_quiet = TRUE, .force = FAL
   return(html_fragment)
 }
 
+create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force) {
+
+  # connect to database if needed
+  if (is.null(.con)) {
+    .con <- metadata_db_con()
+    # close the connection when the function exits
+    withr::defer(pool::poolClose(.con))
+  }
+
+  # emf_type related
+  category <- switch(
+    emf_type,
+    'workflow' = "workflows",
+    'tech_doc' = "tech_docs",
+    'model' = "models",
+    'data' = "data",
+    'softwork' = "softworks"
+  )
+
+  filter_expr <- switch(
+    emf_type,
+    'workflow' = rlang::expr(workflow == !!resource_id),
+    'tech_doc' = rlang::expr(tech_doc == !!resource_id),
+    'model' = rlang::expr(model == !!resource_id),
+    'data' = rlang::expr(data == !!resource_id),
+    'softwork' = rlang::expr(softwork == !!resource_id)
+  )
+
+  # first things first, check if the provided resource is a public workflow
+  # get resource metadata
+  resource_metadata <- use_public_table(category, filter_expr, .con = .con)
+
+  # if the tibble returned has no rows, then resource does not exist and must not be created
+  if (nrow(resource_metadata) < 1) {
+    usethis::ui_oops('Oops!')
+    usethis::ui_stop(
+      "{resource_id} not found in public {category} table. Stopping creation of {resource_id} page"
+    )
+  }
+
+  # clone the repository in a temporal folder that will be cleaned afterwards
+  should_be_updated <- create_from_emf_github(resource_id, .con = .con)
+
+  # Check if dest exists, if not, not matter the commit, we need to create the page
+  if (!fs::file_exists(fs::path(dest, 'index_md'))) {
+    usethis::ui_info("Creating {emf_type} folder at {dest}")
+    should_be_updated <- TRUE
+    fs::dir_create(fs::path(dest))
+  }
+
+  # now in a folder call as the resource, it must be the static files we need to move to the web folder
+  if (!should_be_updated & !.force) {
+    usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
+    return(invisible(FALSE))
+  }
+
+  # create the yaml frontmatter from the metadata
+  yaml_frontmatter <- ymlthis::as_yml(list(
+    title = resource_metadata$title,
+    authors = pq__text_to_vector_parser(resource_metadata$author),
+    categories = category,
+    tags = pq__text_to_vector_parser(resource_metadata$tag),
+    draft = resource_metadata$emf_draft,
+    featured = FALSE,
+    date = resource_metadata$date,
+    lastmod = resource_metadata$date_lastmod,
+    summary = resource_metadata$description
+  )) %>%
+    capture_yml()
+
+  md_content <- c(
+    description = resource_metadata$description,
+    link = glue::glue("For more information see {resource_metadata$external_link}")
+  )
+
+  # write file (overwritting existing file). Code for writing taken from usethis::write_over and
+  # xfun::write_utf8, because usethis::write_over (which would be ideal), requires mandatory user input to
+  # overwrite, with no way to avoid it.
+  written <- write_lines_utf8(lines = c(yaml_frontmatter, md_content), path = fs::path(dest, 'index.md'))
+
+  if (!written) {
+    usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
+    return(invisible(FALSE))
+  }
+
+  usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}")
+  return(invisible(TRUE))
+
+}
+
 create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render_quiet, .force) {
+
+  # connect to database if needed
+  if (is.null(.con)) {
+    .con <- metadata_db_con()
+    # close the connection when the function exits
+    withr::defer(pool::poolClose(.con))
+  }
+
   # emf_type related
   category <- switch(
     emf_type,
@@ -88,13 +186,6 @@ create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render
   if (isFALSE(fragment)) {
     usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
     return(invisible(FALSE))
-  }
-
-  # connect to database if needed
-  if (is.null(.con)) {
-    .con <- metadata_db_con()
-    # close the connection when the function exits
-    withr::defer(pool::poolClose(.con))
   }
 
   # create the yaml frontmatter from the metadata
@@ -167,7 +258,7 @@ create_workflow_page <- function(
 #' @param resource_id Character with the resource ID
 #' @param .render_quiet Must \code{pkgdown::build_site} be quiet?
 #'
-#' @return ???
+#' @return invisible TRUE
 #'
 #' @examples
 #' create_softwork_page('meteospain')
@@ -236,7 +327,7 @@ create_softwork_page <- function(
 #'
 #' This function creates a web page for the tech_doc resource based on the id
 #'
-#' The path to the web can be stored in a environment variable and this function will take it automatically.
+#' Tech docs can be Rmd docs or bookdown pages.
 #'
 #' @inheritParams create_workflow_page
 #'
@@ -255,12 +346,56 @@ create_tech_doc_page <- function(
   create_rmd_page('tech_doc', resource_id, dest, fragment, .con, .render_quiet, .force)
 }
 
-create_model_page <- function(...) {
-  return(FALSE)
+#' Create a tmodel page in the web project
+#'
+#' This function creates a web page for the model resource based on the id
+#'
+#' Root web path can be stored in a env var and used here
+#'
+#' @param resource_id ID of the workflow resource
+#' @param dest Path to the resource page tree
+#' @param .con Connection to the database
+#' @param .render_quiet Logical, must the render function be quiet?
+#' @param .force Logical, must the render be done even if not needed?
+#'
+#' @return invisible TRUE
+#'
+#' @examples
+#' create_model_page('test_dummy_model')
+#'
+#' @export
+create_model_page <- function(
+  resource_id,
+  dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'models', resource_id),
+  .con = NULL, .render_quiet = TRUE, .force = FALSE
+) {
+  create_metadata_page('model', resource_id, dest, .con, .render_quiet, .force)
 }
 
-create_data_page <- function(...) {
-  return(FALSE)
+#' Create a data page in the web project
+#'
+#' This function creates a web page for the data resource based on the id
+#'
+#' Root web path can be stored in a env var and used here
+#'
+#' @param resource_id ID of the workflow resource
+#' @param dest Path to the resource page tree
+#' @param .con Connection to the database
+#' @param .render_quiet Logical, must the render function be quiet?
+#' @param .force Logical, must the render be done even if not needed?
+#'
+#' @return invisible TRUE
+#'
+#' @examples
+#' create_data_page('test_dummy_data')
+#'
+#' @export
+create_data_page <- function(
+  resource_id,
+  dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'data', resource_id),
+  .con = NULL, .render_quiet = TRUE, .force = FALSE
+) {
+  create_metadata_page('data', resource_id, dest, .con, .render_quiet, .force)
 }
 
 #' Update pages for resources
