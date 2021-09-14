@@ -459,14 +459,14 @@ update_resource_pages_by_type <- function(
   failed_pages <- created_pages[created_pages == FALSE]
   if (length(failed_pages) > 0) {
     usethis::ui_oops(c(
-      crayon::bold("Oops! The following softwork pages weren't updated:"),
+      crayon::bold("Oops! The following {emf_type} pages weren't updated:"),
       "{usethis::ui_value(names(failed_pages))}"
     ))
   }
   ok_pages <- created_pages[created_pages == TRUE]
   if (length(ok_pages) > 0) {
     usethis::ui_done(c(
-      crayon::bold("Succesfully updated the following softwork pages:"),
+      crayon::bold("Succesfully updated the following {emf_type} pages:"),
       "{usethis::ui_value(names(ok_pages))}"
     ))
   }
