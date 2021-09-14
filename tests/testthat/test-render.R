@@ -111,7 +111,7 @@ test_that("create_model_page works as expected", {
 test_that("create_data_page works as expected", {
   # paths
   local_web <- local_temp_proj()
-  md_path <- fs::path(local_web, 'content', 'datas', 'test_dummy_data', 'index.md')
+  md_path <- fs::path(local_web, 'content', 'data', 'test_dummy_data', 'index.md')
   # set local envvars and remove them later
   withr::local_envvar(list(WEB_PATH = local_web))
 
@@ -125,7 +125,7 @@ test_that("create_data_page works as expected", {
   ))
   expect_error(
     create_data_page('test_dummy_softwork', .con = emf_database),
-    "not found in public datas table"
+    "not found in public data table"
   )
   expect_false(
     create_data_page('test_dummy_data', .con = emf_database)

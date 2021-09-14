@@ -90,7 +90,7 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
   should_be_updated <- create_from_emf_github(resource_id, .con = .con)
 
   # Check if dest exists, if not, not matter the commit, we need to create the page
-  if (!fs::file_exists(fs::path(dest, 'index_md'))) {
+  if (!fs::file_exists(fs::path(dest, 'index.md'))) {
     usethis::ui_info("Creating {emf_type} folder at {dest}")
     should_be_updated <- TRUE
     fs::dir_create(fs::path(dest))
