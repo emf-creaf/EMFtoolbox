@@ -99,6 +99,7 @@ test_that("create_model_page works as expected", {
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
       'title: Test dummy model'
   ))
+  expect_true(any(stringr::str_detect(file_lines, "For more information see")))
   expect_error(
     create_model_page('test_dummy_softwork', .con = emf_database),
     "not found in public models table"
@@ -123,6 +124,7 @@ test_that("create_data_page works as expected", {
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
       'title: Test dummy data'
   ))
+  expect_true(any(stringr::str_detect(file_lines, "For more information see")))
   expect_error(
     create_data_page('test_dummy_softwork', .con = emf_database),
     "not found in public data table"

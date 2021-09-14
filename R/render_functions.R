@@ -117,7 +117,13 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
     capture_yml()
 
   md_content <- c(
+    "",
+    "## Description",
+    "",
     description = resource_metadata$description,
+    "",
+    "## Link to {emf_type}",
+    "",
     link = glue::glue("For more information see {resource_metadata$external_link}")
   )
 
