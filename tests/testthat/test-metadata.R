@@ -66,12 +66,20 @@ test_that("metadata collection helpers work properly", {
   expect_identical(metadata_yml$id, 'dummy_workflow')
   expect_identical(metadata_yml$emf_type, 'workflow')
   expect_false(metadata_yml$emf_draft)
-  expect_identical(metadata_yml$authors, 'vgranda')
-  expect_identical(metadata_yml$authors_aff, 'CREAF')
+  expect_identical(metadata_yml$authors, c('vgranda', 'mr_dummy', 'emf', 'rmolowni', 'mcaceres'))
+  expect_identical(metadata_yml$authors_aff, c('CREAF', 'dummy research center', 'CREAF', 'CREAF', 'CREAF'))
   expect_identical(metadata_yml$resource_link, 'workflows/dummy_workflow')
   expect_identical(metadata_yml$thematic, 'dummy')
   expect_identical(metadata_yml$dummy_workflow_field_1, 'dummy')
   expect_identical(metadata_yml$dummy_workflow_field_2, 'dummydummy')
+  # read_metadata_file throws error when incorrect (duplicated fields)
+  yml_contents <- readLines(fs::path(workflow_proj, 'metadata.yml'))
+  yml_end_index <- length(yml_contents)
+  writeLines(
+    c(yml_contents[1:7], yml_contents[6:yml_end_index]),
+    fs::path(workflow_proj, 'bad_metadata.yml')
+  )
+  expect_error(read_metadata_file(fs::path(workflow_proj, 'bad_metadata.yml')), "Duplicate map key")
 
   ## collect dry
   expect_identical((metadata_collected <- collect_metadata(emf_database, .dry = TRUE)), metadata_yml)
@@ -231,13 +239,19 @@ test_that("updated database is correct", {
        dplyr::collect()),
     'tbl_df'
   )
-  expect_equal(nrow(authors_db), 5) # 5 resources x 1 authors each
+  expect_equal(nrow(authors_db), 25) # 5 resources x 5 authors each
   expect_identical(
     unique(authors_db$id),
     c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
   )
-  expect_true(all(authors_db$author == 'vgranda'))
-  expect_true(all(authors_db$author_aff == 'CREAF'))
+  expect_identical(
+    unique(authors_db$author),
+    c('vgranda', 'mr_dummy', 'emf', 'rmolowni', 'mcaceres')
+  )
+  expect_identical(
+    unique(authors_db$author_aff),
+    c('CREAF', 'dummy research center')
+  )
 
   expect_s3_class(
     (requirements_db <- dplyr::tbl(emf_database, 'requirements') %>%
