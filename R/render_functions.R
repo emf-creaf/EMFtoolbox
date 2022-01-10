@@ -5,6 +5,7 @@
 #' This function assumes that the Rmd file is called the same as the resource id
 #'
 #' @param resource_id Character with the resource ID
+#' @param dest Destination of any intermediate file generated (images)
 #' @param .render_quiet Must \code{rmarkdown::render} be quiet?
 #' @param .force Should the fragment be rendered even if there is no new commit in resource repository?
 #' @param .con Connection to pass, if provided
@@ -12,10 +13,10 @@
 #' @return html object
 #'
 #' @examples
-#' render_html_fragment('test_dummy_workflow')
+#' render_rd_fragment('test_dummy_workflow')
 #'
 #' @export
-render_html_fragment <- function(resource_id, .render_quiet = TRUE, .force = FALSE, .con = NULL) {
+render_rd_fragment <- function(resource_id, dest, .render_quiet = TRUE, .force = FALSE, .con = NULL) {
 
   # clone the repository in a temporal folder that will be cleaned afterwards
   should_be_updated <- create_from_emf_github(resource_id, .con = .con)
@@ -23,7 +24,7 @@ render_html_fragment <- function(resource_id, .render_quiet = TRUE, .force = FAL
   # if file does not exists, it doesn't matter if should be updated or not
   if (!fs::file_exists(glue::glue("{resource_id}.Rmd"))) {
     usethis::ui_oops("Oops! Something went wrong with {resource_id}")
-    usethis::ui_stop("No {resource_id}.Rmd file found in {resource_id} respository")
+    usethis::ui_stop("{resource_id}.Rmd file not found in {resource_id} repository")
   }
 
   # Check if the page should be updated and there is no force in play
@@ -34,16 +35,25 @@ render_html_fragment <- function(resource_id, .render_quiet = TRUE, .force = FAL
   # render the Rmd
   rmarkdown::render(
     input = glue::glue("{resource_id}.Rmd"),
-    output_format = "html_fragment",
-    output_file = glue::glue("{resource_id}_fragment.html"),
+    output_format = rmarkdown::md_document(variant = 'markdown'),
+    output_file = glue::glue("{resource_id}.md"),
     quiet = .render_quiet
   )
 
+  # copy intermediate images
+  usethis::ui_info("Copying the intermediate images needed")
+  intermediate_images <- copy_images('.', dest)
+
   # And now return the html file.
   # We return the html as a readLines object
-  html_fragment <- readLines(glue::glue("{resource_id}_fragment.html"), warn = FALSE, encoding = "UTF-8")
-  # html_fragment <- htmltools::includeHTML(glue::glue("{resource_id}_fragment.html"))
-  return(html_fragment)
+  rd_fragment <- readLines(
+    glue::glue("{resource_id}.md"),
+    warn = FALSE, encoding = "UTF-8"
+  ) %>%
+    # images substitution
+    rd_postprocessing(intermediate_images)
+
+  return(rd_fragment)
 }
 
 create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force) {
@@ -65,14 +75,16 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
     'softwork' = "softworks"
   )
 
-  filter_expr <- switch(
-    emf_type,
-    'workflow' = rlang::expr(workflow == !!resource_id),
-    'tech_doc' = rlang::expr(tech_doc == !!resource_id),
-    'model' = rlang::expr(model == !!resource_id),
-    'data' = rlang::expr(data == !!resource_id),
-    'softwork' = rlang::expr(softwork == !!resource_id)
-  )
+  filter_expr <- rlang::parse_expr(glue::glue("{emf_type} == '{resource_id}'"))
+
+  # filter_expr <- switch(
+  #   emf_type,
+  #   'workflow' = rlang::expr(workflow == !!resource_id),
+  #   'tech_doc' = rlang::expr(tech_doc == !!resource_id),
+  #   'model' = rlang::expr(model == !!resource_id),
+  #   'data' = rlang::expr(data == !!resource_id),
+  #   'softwork' = rlang::expr(softwork == !!resource_id)
+  # )
 
   # first things first, check if the provided resource is a public workflow
   # get resource metadata
@@ -142,7 +154,7 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
 
 }
 
-create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render_quiet, .force) {
+create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force) {
 
   # connect to database if needed
   if (is.null(.con)) {
@@ -161,14 +173,16 @@ create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render
     'softwork' = "softworks"
   )
 
-  filter_expr <- switch(
-    emf_type,
-    'workflow' = rlang::expr(workflow == !!resource_id),
-    'tech_doc' = rlang::expr(tech_doc == !!resource_id),
-    'model' = rlang::expr(model == !!resource_id),
-    'data' = rlang::expr(data == !!resource_id),
-    'softwork' = rlang::expr(softwork == !!resource_id)
-  )
+  filter_expr <- rlang::parse_expr(glue::glue("{emf_type} == '{resource_id}'"))
+
+  # filter_expr <- switch(
+  #   emf_type,
+  #   'workflow' = rlang::expr(workflow == !!resource_id),
+  #   'tech_doc' = rlang::expr(tech_doc == !!resource_id),
+  #   'model' = rlang::expr(model == !!resource_id),
+  #   'data' = rlang::expr(data == !!resource_id),
+  #   'softwork' = rlang::expr(softwork == !!resource_id)
+  # )
 
   # first things first, check if the provided resource is a public workflow
   # get resource metadata
@@ -182,9 +196,17 @@ create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render
     )
   }
 
+  # create the dest if it not exist
+  if (!fs::dir_exists(dest)) {
+    usethis::ui_info("Creating {emf_type} folder at {dest}")
+    fs::dir_create(dest)
+  }
+
   # Check if dest exists, if not, not matter the commit, we need to create the page
   if (!fs::file_exists(fs::path(dest, 'index_md'))) {
-    fragment <- render_html_fragment(resource_id, .force = TRUE, .con = .con)
+    fragment <- render_rd_fragment(resource_id, dest, .force = TRUE, .con = .con)
+  } else {
+    fragment <- render_rd_fragment(resource_id, dest, .con = .con)
   }
 
   # Check if the workflow page must be updated by the last commit.
@@ -209,12 +231,7 @@ create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render
     capture_yml()
 
   # join frontmatter and fragment and write the file
-  if (!fs::dir_exists(dest)) {
-    usethis::ui_info("Creating {emf_type} folder at {dest}")
-    fs::dir_create(dest)
-  }
-
-  # write file (overwritting existing file). Code for writing taken from usethis::write_over and
+  # (overwritting existing file). Code for writing taken from usethis::write_over and
   # xfun::write_utf8, because usethis::write_over (which would be ideal), requires mandatory user input to
   # overwrite, with no way to avoid it.
   written <- write_lines_utf8(lines = c(yaml_frontmatter, fragment), path = fs::path(dest, 'index.md'))
@@ -235,8 +252,6 @@ create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render
 #' The path to the web can be stored in a environment variable and this function will take it automatically.
 #'
 #' @param resource_id ID of the workflow resource
-#' @param fragment HTML object with the rendered html fragment of the resource, as obtained by
-#'   \code{\link{render_html_fragment}}
 #' @param dest Path to the resource page tree
 #' @param .con Connection to the database
 #' @param .render_quiet Logical, must the render function be quiet?
@@ -249,10 +264,9 @@ create_rmd_page <- function(emf_type, resource_id, dest, fragment, .con, .render
 create_workflow_page <- function(
   resource_id,
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'workflows', resource_id),
-  fragment = render_html_fragment(resource_id, .con = .con, .force = .force),
   .con = NULL, .render_quiet = TRUE, .force = FALSE
 ) {
-  create_rmd_page('workflow', resource_id, dest, fragment, .con, .render_quiet, .force)
+  create_rmd_page('workflow', resource_id, dest, .con, .render_quiet, .force)
 }
 
 #' Render pkgdown for softworks
@@ -346,10 +360,9 @@ create_softwork_page <- function(
 create_tech_doc_page <- function(
   resource_id,
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'tech_docs', resource_id),
-  fragment = render_html_fragment(resource_id, .con = .con, .force = .force),
   .con = NULL, .render_quiet = TRUE, .force = FALSE
 ) {
-  create_rmd_page('tech_doc', resource_id, dest, fragment, .con, .render_quiet, .force)
+  create_rmd_page('tech_doc', resource_id, dest, .con, .render_quiet, .force)
 }
 
 #' Create a tmodel page in the web project
@@ -513,4 +526,46 @@ delete_page <- function(
 capture_yml <- function(yml) {
   withr::local_envvar(NO_COLOR = TRUE)
   utils::capture.output(print(yml))
+}
+
+copy_images <- function(folder = '.', dest, formats = c('png', 'jpg', 'svg')) {
+  # list images in folders (by formats) and copy them to dest
+
+  # list of images
+  images_list <- fs::dir_ls(
+    path = folder,
+    recurse = TRUE,
+    type = "file",
+    regexp = glue::glue("[.]{glue::glue_collapse(formats, '|')}$")
+  )
+
+  if (length(images_list) < 1) {
+    usethis::ui_done("No intermediate images needed")
+    return(invisible(FALSE))
+  }
+
+  fs::file_copy(images_list, dest, overwrite = TRUE)
+  return(invisible(images_list))
+}
+
+rd_postprocessing <- function(rd_fragment, intermediate_images) {
+
+  # image postprocessing:
+  # converting all images calls "![]()" to {{< image >}}
+  purrr::map(
+    intermediate_images,
+    ~ which(stringr::str_detect(rd_fragment, .x))
+  ) %>%
+    purrr::iwalk(
+      function(index, image_path) {
+        image_shorthand <- glue::glue(
+          '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = TRUE) %>% dplyr::last()}" class="single-image" >}}}}'
+        )
+
+        rd_fragment[index] <<- image_shorthand
+      }
+    )
+
+  rd_fragment
+
 }

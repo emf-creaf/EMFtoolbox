@@ -5,6 +5,7 @@ emf_public: true
 emf_automatized: true
 emf_reproducible: false
 emf_draft: true
+emf_data_type: 'emf_data_product'
 nodes: ['']
 authors: ['']
 authors_aff: ['']

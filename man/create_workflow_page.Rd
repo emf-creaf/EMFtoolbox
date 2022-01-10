@@ -7,7 +7,6 @@
 create_workflow_page(
   resource_id,
   dest = fs::path(Sys.getenv("WEB_PATH"), "content", "workflows", resource_id),
-  fragment = render_html_fragment(resource_id, .con = .con, .force = .force),
   .con = NULL,
   .render_quiet = TRUE,
   .force = FALSE
@@ -17,9 +16,6 @@ create_workflow_page(
 \item{resource_id}{ID of the workflow resource}
 
 \item{dest}{Path to the resource page tree}
-
-\item{fragment}{HTML object with the rendered html fragment of the resource, as obtained by
-\code{\link{render_html_fragment}}}
 
 \item{.con}{Connection to the database}
 

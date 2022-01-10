@@ -4,13 +4,15 @@
 emf_database <- metadata_db_con()
 withr::defer(pool::poolClose(emf_database))
 
-test_that('render_html_fragment works as expected', {
-  expect_type(render_html_fragment('test_dummy_workflow', .force = TRUE, .con = emf_database), 'character')
+test_that('render_rd_fragment works as expected', {
+  tmp_dest <- tempdir()
+
+  expect_type(render_rd_fragment('test_dummy_workflow', tmp_dest, .force = TRUE, .con = emf_database), 'character')
   expect_error(
-    render_html_fragment('test_dummy_workflow_not_existent', .con = emf_database),
+    render_rd_fragment('test_dummy_workflow_not_existent', tmp_dest, .con = emf_database),
     "Message: Not Found"
   )
-  expect_error(render_html_fragment('test_dummy_softwork', .con = emf_database), 'No test_dummy_softwork.Rmd')
+  expect_error(render_rd_fragment('test_dummy_softwork', tmp_dest, .con = emf_database), 'test_dummy_softwork.Rmd file not found')
 })
 
 test_that("create_workflow_page works as expected", {
@@ -29,7 +31,7 @@ test_that("create_workflow_page works as expected", {
       'title: Dummy workflow for testing'
   ))
   expect_true(any(
-    file_lines == "<p>Tururu’s</p>"
+    file_lines == "Tururu's"
   ))
   expect_error(
     create_workflow_page('test_dummy_softwork', .con = emf_database),
@@ -73,7 +75,7 @@ test_that("create_tech_doc_page works as expected", {
       'title: Test dummy tech doc'
   ))
   expect_true(any(
-    file_lines == "<p>Tururu’s</p>"
+    file_lines == "Tururu's"
   ))
   expect_error(
     create_tech_doc_page('test_dummy_softwork', .con = emf_database),
