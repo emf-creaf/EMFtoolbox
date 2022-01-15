@@ -137,6 +137,9 @@ use_softwork_yml <- function(..., .write = FALSE) {
 #'
 #' @export
 collect_metadata <- function(con = NULL, .dry = TRUE) {
+
+  browser()
+
   # collect the metadata
   metadata_yml <- read_metadata_file()
 
@@ -197,9 +200,16 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
 
 # Read the metadata.yml file in the project.
 read_metadata_file <- function(yml_file = './metadata.yml') {
-  readLines(yml_file) %>%
-    glue::glue_collapse(sep = '\n') %>%
-    ymlthis::as_yml()
+
+  if(is.character(yml_file)) {
+    readLines(yml_file) %>%
+      glue::glue_collapse(sep = '\n') %>%
+      ymlthis::as_yml()
+  } else {
+    purrr::flatten(yml_file) %>%
+      ymlthis::as_yml()
+  }
+
 }
 
 # Prepare the update tables
