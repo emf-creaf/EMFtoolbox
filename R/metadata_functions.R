@@ -126,6 +126,7 @@ use_softwork_yml <- function(..., .write = FALSE) {
 #' @param con Connection to the metadata database (DBI or pool object)
 #' @param .dry Logical indicating if this is a dry-run (no permanent modification of the database is done) or
 #'   not (permanent modification of the database is done by adding the metadata).
+#' @param ... arguments passed to \code{\link{read_metadata_file}}
 #'
 #' @return Invisible TRUE if update is needed and performed correctly, invisible FALSE if update is not needed
 #'   and process is performed correctly. Metadata \code{yml} object if \code{.dry} i TRUE. Error if the update
@@ -136,12 +137,10 @@ use_softwork_yml <- function(..., .write = FALSE) {
 #' collect_metadata(con = emf_database, .dry = FALSE)
 #'
 #' @export
-collect_metadata <- function(con = NULL, .dry = TRUE) {
-
-  browser()
+collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
 
   # collect the metadata
-  metadata_yml <- read_metadata_file()
+  metadata_yml <- read_metadata_file(...)
 
   # if draft, dry
   if (isTRUE(metadata_yml$emf_draft)) {
@@ -177,13 +176,16 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
     return(invisible(FALSE))
   }
 
+  browser()
+
   # prepare and execute the queries to insert if don't exists or update if exists.
-  usethis::ui_info("  - updating the following tables:\n")
-  usethis::ui_info(glue::glue("    {names(update_tables_list[valid_update_list])}", sep = ', '))
+  usethis::ui_info("- updating the following tables:\n")
+  names(update_tables_list[valid_update_list]) %>%
+    purrr::walk(usethis::ui_todo)
   update_metadata_queries(update_tables_list, update_info, con, metadata_yml)
 
   # check the db is correctly updated (if not dry)
-  usethis::ui_info("  - checking if the update went well\n")
+  usethis::ui_info("- checking if the update went well\n")
   final_check <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)$valid_update_list
 
   if (any(final_check)) {
@@ -197,6 +199,44 @@ collect_metadata <- function(con = NULL, .dry = TRUE) {
   return(invisible(TRUE))
 }
 
+#' Collect metadata for external models
+#'
+#' Collect metadata for external models
+#'
+#' This function will collect the metadata present in the selected excel file.
+#'
+#' @param con Connection to the metadata database (DBI or pool object)
+#' @param .dry Logical indicating if this is a dry-run (no permanent modification of the database is done) or
+#'   not (permanent modification of the database is done by adding the metadata).
+#' @param ... arguments passed to \code{\link{external_models_transform}}
+#'
+#' @return Invisible TRUE if update is needed and performed correctly, invisible FALSE if update is not needed
+#'   and process is performed correctly. Metadata \code{yml} object if \code{.dry} i TRUE. Error if the update
+#'   failed and there is a mismatch between the updated db tables and the metadata file.
+#'
+#' @examples
+#' collect_metadata_external_models(con = emf_database, .dry = TRUE)
+#'
+#' @export
+collect_metadata_external_models <- function(con = NULL, ..., .dry = TRUE) {
+  # load the original table and transform it
+  external_models_metadata <- external_models_transform(...)
+
+  # TODO find a way to iterate **safely** by rows calling collect_metadata. slider::slide does not accept
+  # safe versions of the function, so we are gonna use the ol'good map
+
+  # create a safe version of collect_metadata
+  safe_collect_metadata <- purrr::safely(collect_metadata)
+
+  # safely loop the ext_models metadata rows
+  updated_external_models <-
+    1:nrow(external_models_metadata) %>%
+    purrr::map(~ safe_collect_metadata(con = con, .dry = .dry, yml_file = external_models_metadata[.x,]))
+
+  return(purrr::map(updated_external_models, 'result'))
+
+}
+
 
 # Read the metadata.yml file in the project.
 read_metadata_file <- function(yml_file = './metadata.yml') {
@@ -206,7 +246,9 @@ read_metadata_file <- function(yml_file = './metadata.yml') {
       glue::glue_collapse(sep = '\n') %>%
       ymlthis::as_yml()
   } else {
-    purrr::flatten(yml_file) %>%
+    yml_file %>%
+      dplyr::mutate(tags = purrr::map(tags, ~ purrr::discard(.x, .p = is.na))) %>%
+      purrr::flatten() %>%
       ymlthis::as_yml()
   }
 
