@@ -152,7 +152,7 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
   if (isTRUE(.dry)) {
     return(metadata_yml)
   } else {
-    usethis::ui_info("Updating metadata database...\n")
+    usethis::ui_info("Collecting {metadata_yml$id}:\n")
   }
 
   # create the connection if con = null

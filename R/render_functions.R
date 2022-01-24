@@ -77,15 +77,6 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
 
   filter_expr <- rlang::parse_expr(glue::glue("{emf_type} == '{resource_id}'"))
 
-  # filter_expr <- switch(
-  #   emf_type,
-  #   'workflow' = rlang::expr(workflow == !!resource_id),
-  #   'tech_doc' = rlang::expr(tech_doc == !!resource_id),
-  #   'model' = rlang::expr(model == !!resource_id),
-  #   'data' = rlang::expr(data == !!resource_id),
-  #   'softwork' = rlang::expr(softwork == !!resource_id)
-  # )
-
   # first things first, check if the provided resource is a public workflow
   # get resource metadata
   resource_metadata <- use_public_table(category, filter_expr, .con = .con)
@@ -99,7 +90,26 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
   }
 
   # clone the repository in a temporal folder that will be cleaned afterwards
-  should_be_updated <- create_from_emf_github(resource_id, .con = .con)
+  # Here we check if is external and hijack the resource_id
+  should_be_updated <- FALSE
+  yaml_frontmatter <- ''
+  md_content <- ''
+
+  if (is_external(resource_metadata)) {
+    ## external model/data
+    dest <- fs::path(Sys.getenv('WEB_PATH'), 'content', glue::glue('external_{category}'), resource_id)
+    external_resource_id <- glue::glue("emf_external_{category}")
+    should_be_updated <- create_from_emf_github(
+      resource_id, .con = .con, .external = TRUE, .external_id = external_resource_id
+    )
+    yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = TRUE)
+    md_content <- md_content_generator(resource_metadata, .external = TRUE)
+  } else {
+    ## no external
+    should_be_updated <- create_from_emf_github(resource_id, .con = .con)
+    yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = FALSE)
+    md_content <- md_content_generator(resource_metadata, .external = FALSE)
+  }
 
   # Check if dest exists, if not, not matter the commit, we need to create the page
   if (!fs::file_exists(fs::path(dest, 'index.md'))) {
@@ -113,31 +123,6 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
     usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
     return(invisible(FALSE))
   }
-
-  # create the yaml frontmatter from the metadata
-  yaml_frontmatter <- ymlthis::as_yml(list(
-    title = resource_metadata$title,
-    authors = pq__text_to_vector_parser(resource_metadata$author),
-    categories = category,
-    tags = pq__text_to_vector_parser(resource_metadata$tag),
-    draft = resource_metadata$emf_draft,
-    featured = FALSE,
-    date = resource_metadata$date,
-    lastmod = resource_metadata$date_lastmod,
-    summary = resource_metadata$description
-  )) %>%
-    capture_yml()
-
-  md_content <- c(
-    "",
-    "## Description",
-    "",
-    description = resource_metadata$description,
-    "",
-    "## Link to {emf_type}",
-    "",
-    link = glue::glue("For more information see {resource_metadata$external_link}")
-  )
 
   # write file (overwritting existing file). Code for writing taken from usethis::write_over and
   # xfun::write_utf8, because usethis::write_over (which would be ideal), requires mandatory user input to
@@ -217,18 +202,7 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
   }
 
   # create the yaml frontmatter from the metadata
-  yaml_frontmatter <- ymlthis::as_yml(list(
-    title = resource_metadata$title,
-    authors = pq__text_to_vector_parser(resource_metadata$author),
-    categories = category,
-    tags = pq__text_to_vector_parser(resource_metadata$tag),
-    draft = resource_metadata$emf_draft,
-    featured = FALSE,
-    date = resource_metadata$date,
-    lastmod = resource_metadata$date_lastmod,
-    summary = resource_metadata$description
-  )) %>%
-    capture_yml()
+  yaml_frontmatter <- frontmatter_generator(resource_metadata)
 
   # join frontmatter and fragment and write the file
   # (overwritting existing file). Code for writing taken from usethis::write_over and
@@ -522,50 +496,53 @@ delete_page <- function(
   fs::dir_delete(page_path)
 }
 
-# Capture yaml lines to write
-capture_yml <- function(yml) {
-  withr::local_envvar(NO_COLOR = TRUE)
-  utils::capture.output(print(yml))
-}
+frontmatter_generator <- function(resource_metadata, category, .external = FALSE) {
 
-copy_images <- function(folder = '.', dest, formats = c('png', 'jpg', 'svg')) {
-  # list images in folders (by formats) and copy them to dest
+  # create the yaml frontmatter from the metadata
+  yaml_frontmatter <-
+    list(
+      title = resource_metadata$title,
+      authors = pq__text_to_vector_parser(resource_metadata$author),
+      categories = category,
+      tags = pq__text_to_vector_parser(resource_metadata$tag),
+      draft = resource_metadata$emf_draft,
+      featured = FALSE,
+      date = resource_metadata$date,
+      lastmod = resource_metadata$date_lastmod,
+      summary = resource_metadata$description,
+      model_repository = resource_metadata$model_repository,
+      data_repository = resource_metadata$data_repository
+    ) %>%
+    purrr::map(nas_to_empty_strings) %>%
+    ymlthis::as_yml() %>%
+    capture_yml()
 
-  # list of images
-  images_list <- fs::dir_ls(
-    path = folder,
-    recurse = TRUE,
-    type = "file",
-    regexp = glue::glue("[.]{glue::glue_collapse(formats, '|')}$")
-  )
+  if (isTRUE(.external)) {
 
-  if (length(images_list) < 1) {
-    usethis::ui_done("No intermediate images needed")
-    return(invisible(FALSE))
   }
 
-  fs::file_copy(images_list, dest, overwrite = TRUE)
-  return(invisible(images_list))
+  return(yaml_frontmatter)
+
 }
 
-rd_postprocessing <- function(rd_fragment, intermediate_images) {
+md_content_generator <- function(resource_metadata, .external = FALSE) {
 
-  # image postprocessing:
-  # converting all images calls "![]()" to {{< image >}}
-  purrr::map(
-    intermediate_images,
-    ~ which(stringr::str_detect(rd_fragment, .x))
-  ) %>%
-    purrr::iwalk(
-      function(index, image_path) {
-        image_shorthand <- glue::glue(
-          '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = TRUE) %>% dplyr::last()}" class="single-image" >}}}}'
-        )
+  # create the content from the metadata
+  md_content <- c(
+    "",
+    "## Description",
+    "",
+    description = resource_metadata$description,
+    "",
+    glue::glue("## Link to {resource_metadata$emf_type}"),
+    "",
+    link = glue::glue("For more information see {resource_metadata$external_link}")
+  )
 
-        rd_fragment[index] <<- image_shorthand
-      }
-    )
+  if (!isTRUE(.external)) {
 
-  rd_fragment
+  }
+
+  return(md_content)
 
 }

@@ -43,6 +43,7 @@ create_queries_list <- list(
     "CREATE TABLE IF NOT EXISTS resources(
       id TEXT PRIMARY KEY,
       emf_type TEXT,
+      emf_data_type TEXT,
       emf_public BOOL,
       emf_automatized BOOL,
       emf_reproducible BOOL,
@@ -53,7 +54,9 @@ create_queries_list <- list(
       date_lastmod DATE,
       description TEXT,
       title TEXT,
-      external_link TEXT
+      external_link TEXT,
+      model_repository TEXT,
+      data_repository TEXT
     );",
     .con = emf_database
   ),
@@ -267,9 +270,11 @@ create_views_list <- list(
         resources.emf_draft,
         resources.description,
         resources.emf_type,
+        resources.emf_data_type,
         resources.emf_public,
         resources.resource_link,
         resources.external_link,
+        resources.model_repository,
         auth.author,
         auth.author_aff,
         reqs.requirement,
@@ -310,9 +315,11 @@ create_views_list <- list(
         resources.emf_draft,
         resources.description,
         resources.emf_type,
+        resources.emf_data_type,
         resources.emf_public,
         resources.resource_link,
         resources.external_link,
+        resources.data_repository,
         auth.author,
         auth.author_aff,
         reqs.requirement,

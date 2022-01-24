@@ -37,7 +37,7 @@ emf_temp_folder <- function() {
 #'
 #' @export
 pq__text_to_vector_parser <- function(pq__text) {
-  stringr::str_remove_all(pq__text, '[{}]') %>%
+  stringr::str_remove_all(pq__text, '[{}\"]') %>%
     stringr::str_split(',') %>%
     purrr::flatten_chr()
 }
@@ -69,15 +69,25 @@ equal_lines_utf8 <- function(lines, path) {
 #' @param resource_id Resource ID
 #' @param .envir envir for \code{withr::defer}, default to \code{parent.frame()}
 #' @param .con connection to the db
-create_from_emf_github <- function(resource_id, .envir = parent.frame(), .con = NULL) {
+#' @param .external is the resource external
+#' @param .external_id if .external is TRUE, the id of the external data/models repository
+
+create_from_emf_github <- function(
+  resource_id, .envir = parent.frame(), .con = NULL, .external = FALSE, .external_id
+) {
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
 
   # store the current project
   old_project <- usethis::proj_get()
 
+  repository <- resource_id
+  if (isTRUE(.external)) {
+    repository <- .external_id
+  }
+
   # get the dir
-  dir <- fs::path(temp_proj, resource_id)
+  dir <- fs::path(temp_proj, repository)
   fs::dir_create(dir)
   # create the dir, go to the folder and do whatever it needs, but always back again to the original one when
   # finish (defer)
@@ -89,7 +99,7 @@ create_from_emf_github <- function(resource_id, .envir = parent.frame(), .con = 
 
   # create the repo based on resource_id
   usethis::create_from_github(
-    repo_spec = glue::glue("emf-creaf/{resource_id}"),
+    repo_spec = glue::glue("emf-creaf/{repository}"),
     destdir = temp_proj,
     fork = FALSE,
     rstudio = FALSE,
@@ -186,4 +196,65 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
       emf_reproducible, emf_draft, emf_data_type, model_repository, tags,
       nodes, authors, authors_aff, requirements
     )
+}
+
+is_external <- function(resource_metadata) {
+  !is.null(resource_metadata$emf_data_type) &&
+    !is.na(resource_metadata$emf_data_type) &&
+    resource_metadata$emf_data_type == "external_data"
+}
+
+# Capture yaml lines to write
+capture_yml <- function(yml) {
+  withr::local_envvar(NO_COLOR = TRUE)
+  utils::capture.output(print(yml))
+}
+
+copy_images <- function(folder = '.', dest, formats = c('png', 'jpg', 'svg')) {
+  # list images in folders (by formats) and copy them to dest
+
+  # list of images
+  images_list <- fs::dir_ls(
+    path = folder,
+    recurse = TRUE,
+    type = "file",
+    regexp = glue::glue("[.]{glue::glue_collapse(formats, '|')}$")
+  )
+
+  if (length(images_list) < 1) {
+    usethis::ui_done("No intermediate images needed")
+    return(invisible(FALSE))
+  }
+
+  fs::file_copy(images_list, dest, overwrite = TRUE)
+  return(invisible(images_list))
+}
+
+rd_postprocessing <- function(rd_fragment, intermediate_images) {
+
+  # image postprocessing:
+  # converting all images calls "![]()" to {{< image >}}
+  purrr::map(
+    intermediate_images,
+    ~ which(stringr::str_detect(rd_fragment, .x))
+  ) %>%
+    purrr::iwalk(
+      function(index, image_path) {
+        image_shorthand <- glue::glue(
+          '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = TRUE) %>% dplyr::last()}" class="single-image" >}}}}'
+        )
+
+        rd_fragment[index] <<- image_shorthand
+      }
+    )
+
+  rd_fragment
+
+}
+
+nas_to_empty_strings <- function(x) {
+  if (length(x) == 1 && is.na(x)){
+    x <- ''
+  }
+  return(x)
 }

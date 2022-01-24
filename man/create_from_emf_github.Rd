@@ -4,7 +4,13 @@
 \alias{create_from_emf_github}
 \title{Clone and set project from github}
 \usage{
-create_from_emf_github(resource_id, .envir = parent.frame(), .con = NULL)
+create_from_emf_github(
+  resource_id,
+  .envir = parent.frame(),
+  .con = NULL,
+  .external = FALSE,
+  .external_id
+)
 }
 \arguments{
 \item{resource_id}{Resource ID}
@@ -12,6 +18,10 @@ create_from_emf_github(resource_id, .envir = parent.frame(), .con = NULL)
 \item{.envir}{envir for \code{withr::defer}, default to \code{parent.frame()}}
 
 \item{.con}{connection to the db}
+
+\item{.external}{is the resource external}
+
+\item{.external_id}{if .external is TRUE, the id of the external data/models repository}
 }
 \description{
 Temporal cloned repository to work with the resource (render...)
