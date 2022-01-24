@@ -176,8 +176,6 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
     return(invisible(FALSE))
   }
 
-  browser()
-
   # prepare and execute the queries to insert if don't exists or update if exists.
   usethis::ui_info("- updating the following tables:\n")
   names(update_tables_list[valid_update_list]) %>%

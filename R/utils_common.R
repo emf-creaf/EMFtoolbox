@@ -175,10 +175,15 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
       tags = purrr::pmap(
         list(Model.type, Level, Code.language.platform),
         .f = function(x,y,z) {return(c(x,y,z))}
-      )
+      ),
+      nodes = list(""),
+      authors = list(""),
+      authors_aff = list(""),
+      requirements = list("")
     ) %>%
     dplyr::select(
       id, title, emf_type, emf_public, emf_automatized,
-      emf_reproducible, emf_draft, emf_data_type, model_repository, tags
+      emf_reproducible, emf_draft, emf_data_type, model_repository, tags,
+      nodes, authors, authors_aff, requirements
     )
 }
