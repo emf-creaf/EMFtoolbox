@@ -182,13 +182,13 @@ test_that("updated database is correct", {
     'tbl_df'
   )
   expect_equal(nrow(resources_db), 5)
-  expect_identical(
+  expect_setequal(
     resources_db$id,
     c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
   )
   expect_true(!all(resources_db$emf_draft))
-  expect_identical(resources_db$emf_type, c('workflow', 'tech_doc', 'model', 'data', 'softwork'))
-  expect_identical(resources_db$emf_reproducible, c(TRUE, TRUE, FALSE, FALSE, FALSE))
+  expect_setequal(resources_db$emf_type, c('workflow', 'tech_doc', 'model', 'data', 'softwork'))
+  expect_setequal(resources_db$emf_reproducible, c(TRUE, TRUE, FALSE, FALSE, FALSE))
   expect_true(all(
     c(
       'dummy_workflow_field_1', 'dummy_workflow_field_2',
@@ -277,15 +277,58 @@ test_that("use_public_table works as expected", {
   ))
   expect_s3_class((public_models <- use_public_table('models', .con = emf_database)), 'tbl')
   expect_true(all(
-    c("model", "author", "tag", "emf_draft", "date", "date_lastmod", "description") %in%
+    c("model", "author", "tag", "emf_draft", "date", "date_lastmod", "description", "model_repository") %in%
       names(public_models)
   ))
   expect_s3_class((all_public_resources <- use_public_table('all', .con = emf_database)), 'tbl')
   expect_true(all(
-    c("id", "emf_type", "emf_draft", "date", "date_lastmod", "description", "title") %in%
+    c("id", "emf_type", "emf_draft", "date", "date_lastmod",
+      "description", "title", "data_repository", "model_repository") %in%
       names(all_public_resources)
   ))
   # resource specific methods works
   expect_identical(emf_public_workflows, public_workflows(.con = emf_database))
   expect_identical(use_public_table('softworks', .con = emf_database), public_softworks(.con = emf_database))
+})
+
+test_that("collecting external models works", {
+
+  temp_proj <- emf_temp_folder()
+  withr::defer(fs::dir_delete(temp_proj))
+
+  # store the current project
+  old_project <- usethis::proj_get()
+
+  repository <- "emf_external_models"
+
+  # get the dir
+  dir <- fs::path(temp_proj, repository)
+  fs::dir_create(dir)
+  # create the dir, go to the folder and do whatever it needs, but always back again to the original one when
+  # finish (defer)
+  setwd(dir)
+  withr::defer(setwd(old_project))
+  # switch to new project
+  usethis::proj_set(dir, force = TRUE)
+  withr::defer(usethis::proj_set(old_project, force = TRUE))
+
+  # create the repo based on resource_id
+  usethis::create_from_github(
+    repo_spec = glue::glue("emf-creaf/{repository}"),
+    destdir = temp_proj,
+    fork = FALSE,
+    rstudio = FALSE,
+    open = FALSE
+  )
+
+  expected_names <- c(
+    "id", "title", "emf_type", "emf_public", "emf_automatized",
+    "emf_reproducible", "emf_draft", "emf_data_type", "model_repository", "tags",
+    "nodes", "authors", "authors_aff", "requirements"
+  )
+
+  expect_s3_class((external_models_table <- external_models_transform()), 'tbl_df')
+  expect_named(external_models_table, expected_names, ignore.order = TRUE)
+  expect_s3_class(collect_metadata(.dry = TRUE, yml_file = external_models_table[1,]), 'yml')
+
 })

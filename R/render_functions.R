@@ -202,7 +202,7 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
   }
 
   # create the yaml frontmatter from the metadata
-  yaml_frontmatter <- frontmatter_generator(resource_metadata)
+  yaml_frontmatter <- frontmatter_generator(resource_metadata, category)
 
   # join frontmatter and fragment and write the file
   # (overwritting existing file). Code for writing taken from usethis::write_over and
