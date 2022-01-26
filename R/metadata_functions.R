@@ -255,17 +255,24 @@ read_metadata_file <- function(yml_file = './metadata.yml') {
 # Prepare the update tables
 prepare_update_metadata_tables <- function(metadata_yml) {
 
+  browser()
+
   # prepare the updating tables
   update_tables_list <- list(
     resources_update_table = metadata_yml[
-      !names(metadata_yml) %in% c('requirements', 'authors', 'authors_aff', 'tags', 'nodes')
+      !names(metadata_yml) %in% c('authors', 'tags', 'requirements', 'nodes', 'links')
     ] %>%
       tibble::as_tibble(),
 
     tags_update_table = tibble::tibble(
-      tag = metadata_yml$tags,
-      id = metadata_yml$id
+      tag_id = metadata_yml$tags,
+      tag_description = ''
     ),
+
+    resource_tags_update_table = tibble::tibble(
+      id = metadata_yml$id,
+      tag_id = metadata_yml$tags
+    )
 
     nodes_update_table = tibble::tibble(
       node = metadata_yml$nodes,
@@ -273,14 +280,30 @@ prepare_update_metadata_tables <- function(metadata_yml) {
     ),
 
     authors_update_table = tibble::tibble(
-      author = metadata_yml$authors,
-      author_aff = metadata_yml$authors_aff,
-      id = metadata_yml$id
+      author_id = names(metadata_yml$authors),
+      name = purrr::map_chr(metadata_yml$authors, "name"),
+      surname = purrr::map_chr(metadata_yml$authors, "surname"),
+      aff = purrr::map_chr(metadata_yml$authors, "aff"),
+      aff_link = purrr::map_chr(metadata_yml$authors, "aff_link"),
+      summary = purrr::map_chr(metadata_yml$authors, "summary")
+    ),
+
+    resource_authors_update_table = tibble::tibble(
+      id = metadata_yml$id,
+      author_id = names(metadata_yml$authors)
     ),
 
     requirements_update_table = tibble::tibble(
       requirement = metadata_yml$requirements,
       id = metadata_yml$id
+    ),
+
+    links_update_table = tibble::tibble(
+      id = metadata_yml$id,
+      url_pdf = metadata_yml$links$url_pdf,
+      url_doi = metadata_yml$links$url_doi,
+      url_docs = metadata_yml$links$url_docs,
+      url_source = metadata_yml$links$url_source
     )
   )
 

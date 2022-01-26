@@ -6,12 +6,22 @@ emf_automatized: true
 emf_reproducible: false
 emf_draft: true
 emf_data_type: 'emf_source_data'
+data_repository: ''
+model_repository: ''
 nodes: ['']
-authors: ['']
-authors_aff: ['']
-resource_link: ''
-thematic: ''
+authors:
+  emf:
+    name: EMF
+    surname: (Ecosystem Modelling Facility)
+    aff: CREAF
+    aff_link: emf.creaf.cat
+    summary: ''
 tags: ['']
+links:
+  url_pdf: ''
+  url_doi: ''
+  url_docs: ''
+  url_source: ''
 requirements: ['']
 description: ''
 ---

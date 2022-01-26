@@ -76,10 +76,21 @@ create_queries_list <- list(
 
   create_authors_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS authors(
-      author_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-      author TEXT,
+      pk_authors INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      author_id TEXT,
+      name TEXT,
+      surname TEXT,
+      aff TEXT,
+      aff_link TEXT
+    );",
+    .con = emf_database
+  ),
+
+  create_resource_authors_query = glue::glue_sql(
+    "CREATE TABLE IF NOT EXISTS authors(
+      resource_authors_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      author_id TEXT,
       id TEXT,
-      author_aff TEXT,
       CONSTRAINT fk_resources
         FOREIGN KEY(id)
           REFERENCES resources(id)
@@ -103,8 +114,17 @@ create_queries_list <- list(
 
   create_tags_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS tags(
-      tag_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-      tag TEXT,
+      pk_tags INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      tag_id TEXT,
+      tag_description TEXT
+    );",
+    .con = emf_database
+  ),
+
+  create_resource_tags_query = glue::glue_sql(
+    "CREATE TABLE IF NOT EXISTS authors(
+      resource_tags_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      tag_id TEXT,
       id TEXT,
       CONSTRAINT fk_resources
         FOREIGN KEY(id)
@@ -113,6 +133,23 @@ create_queries_list <- list(
     );",
     .con = emf_database
   ),
+
+  create_links_query = glue::glue_sql(
+    "CREATE TABLE IF NOT EXISTS links(
+      link_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      id TEXT,
+      url_pfd TEXT,
+      url_doi TEXT,
+      url_source TEXT,
+      url_docs TEXT,
+      CONSTRAINT fk_resources
+        FOREIGN KEY(id)
+          REFERENCES resources(id)
+          ON DELETE CASCADE
+    );",
+    .con = emf_database
+  ),
+
   create_metadata_definitions_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS metadata_definitions(
       field_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -123,6 +160,7 @@ create_queries_list <- list(
     );",
     .con = emf_database
   ),
+
   create_resources_last_commit_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS resources_last_commit(
       hash_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -158,13 +196,22 @@ indexes_queries_list <- list(
     "CREATE INDEX IF NOT EXISTS node_index ON nodes(id);"
   ),
   authors_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS author_index ON authors(id);"
+    "CREATE INDEX IF NOT EXISTS author_index ON authors(author_id);"
+  ),
+  resource_authors_index = glue::glue(
+    "CREATE INDEX IF NOT EXISTS resource_authors_index ON resource_authors(author_id, id);"
   ),
   requirements_index = glue::glue(
     "CREATE INDEX IF NOT EXISTS requirement_index ON requirements(id);"
   ),
   tags_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS tag_index ON tags(id);"
+    "CREATE INDEX IF NOT EXISTS tag_index ON tags(tag_id);"
+  ),
+  resource_tags_index = glue::glue(
+    "CREATE INDEX IF NOT EXISTS resource_tags_index ON resource_tags(tag_id, id);"
+  ),
+  links_index = glue::glue(
+    "CREATE INDEX IF NOT EXISTS link_index ON links(lid);"
   ),
   last_commit_index = glue::glue(
     "CREATE INDEX IF NOT EXISTS last_commit_index ON resources_last_commit(id);"
