@@ -162,12 +162,13 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
   original_table %>%
     # remove those without DOI or URL, as then we have nothing to offer
     dplyr::filter(
-      !(is.na(URL)) | !(is.na(DOI))
+      !(is.na(URL)) | !(is.na(DOI)), External.catalog.entry == 'Y'
     ) %>%
     # create all necessary variables/metadata
     dplyr::mutate(
       # id & title
       id = Model.name.acronym,
+      description = Short.description,
       title = dplyr::if_else(
         !is.na(Full.name), glue::glue("{Full.name} ({Model.name.acronym})"), Model.name.acronym
       ),
@@ -188,13 +189,16 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
       ),
       nodes = list(""),
       authors = list(""),
-      authors_aff = list(""),
-      requirements = list("")
+      requirements = list(""),
+      links = purrr::pmap(
+        list(DOI, URL),
+        .f = function(x,y) {return(list(url_doi = x, url_source = y))}
+      )
     ) %>%
     dplyr::select(
-      id, title, emf_type, emf_public, emf_automatized,
+      id, description, title, emf_type, emf_public, emf_automatized,
       emf_reproducible, emf_draft, emf_data_type, model_repository, tags,
-      nodes, authors, authors_aff, requirements
+      nodes, authors, requirements, links
     )
 }
 

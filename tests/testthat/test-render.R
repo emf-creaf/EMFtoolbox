@@ -12,7 +12,7 @@ test_that('render_rd_fragment works as expected', {
     render_rd_fragment('test_dummy_workflow_not_existent', tmp_dest, .con = emf_database),
     "Message: Not Found"
   )
-  expect_error(render_rd_fragment('test_dummy_softwork', tmp_dest, .con = emf_database), 'test_dummy_softwork.Rmd file not found')
+  expect_error(render_rd_fragment('test_dummy_softwork', tmp_dest, .con = emf_database, .input = 'not_existent_file.Rmd'), 'Rmd file not found')
 })
 
 test_that("create_workflow_page works as expected", {
@@ -45,13 +45,12 @@ test_that("create_workflow_page works as expected", {
 test_that("create_softwork_page works as expected", {
   # paths
   local_web <- local_temp_proj()
-  pkgdown_path <- fs::path(local_web, 'static', 'softworks', 'test_dummy_softwork')
+  pkgdown_path <- fs::path(local_web, 'content', 'software', 'test_dummy_softwork', 'index.md')
   # set local envvars and remove them later
   withr::local_envvar(list(WEB_PATH = local_web))
 
-  expect_true(create_softwork_page('test_dummy_softwork', .con = emf_database))
-  expect_true(fs::dir_exists(pkgdown_path))
-  expect_true(fs::file_exists(fs::path(pkgdown_path, 'index.html')))
+  expect_true(create_softwork_page('test_dummy_softwork', .con = emf_database, .input = 'README.Rmd'))
+  expect_true(fs::file_exists(pkgdown_path))
   expect_error(
     create_softwork_page('test_dummy_workflow', .con = emf_database),
     "not found in public softworks table"

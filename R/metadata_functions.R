@@ -255,8 +255,6 @@ read_metadata_file <- function(yml_file = './metadata.yml') {
 # Prepare the update tables
 prepare_update_metadata_tables <- function(metadata_yml) {
 
-  browser()
-
   # prepare the updating tables
   update_tables_list <- list(
     resources_update_table = metadata_yml[
@@ -264,33 +262,33 @@ prepare_update_metadata_tables <- function(metadata_yml) {
     ] %>%
       tibble::as_tibble(),
 
-    tags_update_table = tibble::tibble(
-      tag_id = metadata_yml$tags,
-      tag_description = ''
-    ),
+    # tags_update_table = tibble::tibble(
+    #   tag_id = metadata_yml$tags,
+    #   tag_description = ''
+    # ),
 
     resource_tags_update_table = tibble::tibble(
       id = metadata_yml$id,
       tag_id = metadata_yml$tags
-    )
+    ),
 
     nodes_update_table = tibble::tibble(
       node = metadata_yml$nodes,
       id = metadata_yml$id
     ),
 
-    authors_update_table = tibble::tibble(
-      author_id = names(metadata_yml$authors),
-      name = purrr::map_chr(metadata_yml$authors, "name"),
-      surname = purrr::map_chr(metadata_yml$authors, "surname"),
-      aff = purrr::map_chr(metadata_yml$authors, "aff"),
-      aff_link = purrr::map_chr(metadata_yml$authors, "aff_link"),
-      summary = purrr::map_chr(metadata_yml$authors, "summary")
-    ),
+    # authors_update_table = tibble::tibble(
+    #   author_id = names(metadata_yml$authors),
+    #   name = purrr::map_chr(metadata_yml$authors, "name"),
+    #   surname = purrr::map_chr(metadata_yml$authors, "surname"),
+    #   aff = purrr::map_chr(metadata_yml$authors, "aff"),
+    #   aff_link = purrr::map_chr(metadata_yml$authors, "aff_link"),
+    #   summary = purrr::map_chr(metadata_yml$authors, "summary")
+    # ),
 
     resource_authors_update_table = tibble::tibble(
       id = metadata_yml$id,
-      author_id = names(metadata_yml$authors)
+      author_id = metadata_yml$authors
     ),
 
     requirements_update_table = tibble::tibble(
@@ -320,21 +318,25 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
       dplyr::mutate(date = as.character(date), date_lastmod = as.character(date_lastmod)) %>%
       dplyr::select(dplyr::any_of(names(update_tables_list$resources_update_table))) %>%
       dplyr::collect(),
-    tags_old_table = dplyr::tbl(con, 'tags') %>%
+    tags_old_table = dplyr::tbl(con, 'resource_tags') %>%
       dplyr::filter(id == resource_id) %>%
-      dplyr::select(-tag_id) %>%
+      dplyr::select(-resource_tags_pk) %>%
       dplyr::collect(),
     nodes_old_table = dplyr::tbl(con, 'nodes') %>%
       dplyr::filter(id == resource_id) %>%
-      dplyr::select(-node_id) %>%
+      dplyr::select(-node_pk) %>%
       dplyr::collect(),
-    authors_old_table = dplyr::tbl(con, 'authors') %>%
+    authors_old_table = dplyr::tbl(con, 'resource_authors') %>%
       dplyr::filter(id == resource_id) %>%
-      dplyr::select(-author_id) %>%
+      dplyr::select(-resource_authors_pk) %>%
       dplyr::collect(),
     requirements_old_table = dplyr::tbl(con, 'requirements') %>%
       dplyr::filter(id == resource_id) %>%
-      dplyr::select(-requirement_id) %>%
+      dplyr::select(-requirement_pk) %>%
+      dplyr::collect(),
+    links_old_table = dplyr::tbl(con, 'links') %>%
+      dplyr::filter(id == resource_id) %>%
+      dplyr::select(dplyr::any_of(names(update_tables_list$links_update_table)), -link_pk) %>%
       dplyr::collect()
   )
 
@@ -352,8 +354,6 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
     sapply(update_tables_list$resources_update_table, class)[resources_columns_to_add] %>%
     translate_r2sql_types()
 
-
-
   res <- list(
     valid_update_list = valid_update_list,
     resources_columns_to_add = resources_columns_to_add,
@@ -366,8 +366,8 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
   # prepare the valid update list
   valid_update_list <- c(
     update_info$valid_update_list[1],
-    update_info$valid_update_list[2:5],
-    update_info$valid_update_list[2:5]
+    update_info$valid_update_list[2:6],
+    update_info$valid_update_list[2:6]
   )
 
   # Before to prepare queries and update tables, we must check if we are adding new columns to the resources
@@ -409,7 +409,7 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
 
   delete_child_tables_queries <- list(
     delete_old_tags = glue::glue_sql(
-      "DELETE FROM tags WHERE id = {metadata_yml$id};",
+      "DELETE FROM resource_tags WHERE id = {metadata_yml$id};",
       .con = con
     ),
     delete_old_nodes = glue::glue_sql(
@@ -417,20 +417,24 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
       .con = con
     ),
     delete_old_authors = glue::glue_sql(
-      "DELETE FROM authors WHERE id = {metadata_yml$id};",
+      "DELETE FROM resource_authors WHERE id = {metadata_yml$id};",
       .con = con
     ),
     delete_old_requirements = glue::glue_sql(
       "DELETE FROM requirements WHERE id = {metadata_yml$id};",
+      .con = con
+    ),
+    delete_old_links = glue::glue_sql(
+      "DELETE FROM links WHERE id = {metadata_yml$id};",
       .con = con
     )
   )
 
   insert_child_tables_queries <- list(
     insert_new_tags = glue::glue_sql(
-      "INSERT INTO tags (tag, id) VALUES {values*};",
+      "INSERT INTO resource_tags (tag_id, id) VALUES {values*};",
       values = glue::glue_sql(
-        "({update_tables_list$tags_update_table$tag}, {update_tables_list$tags_update_table$id})",
+        "({update_tables_list$resource_tags_update_table$tag_id}, {update_tables_list$resource_tags_update_table$id})",
         .con = con
       ),
       .con = con
@@ -444,9 +448,9 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
       .con = con
     ),
     insert_new_authors = glue::glue_sql(
-      "INSERT INTO authors (author, author_aff, id) VALUES {values*};",
+      "INSERT INTO resource_authors (author_id, id) VALUES {values*};",
       values = glue::glue_sql(
-        "({update_tables_list$authors_update_table$author}, {update_tables_list$authors_update_table$author_aff}, {update_tables_list$authors_update_table$id})",
+        "({update_tables_list$resource_authors_update_table$author_id}, {update_tables_list$resource_authors_update_table$id})",
         .con = con
       ),
       .con = con
@@ -455,6 +459,14 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
       "INSERT INTO requirements (requirement, id) VALUES {values*};",
       values = glue::glue_sql(
         "({update_tables_list$requirements_update_table$requirement}, {update_tables_list$requirements_update_table$id})",
+        .con = con
+      ),
+      .con = con
+    ),
+    insert_new_links = glue::glue_sql(
+      "INSERT INTO links (id, url_pdf, url_doi, url_source, url_docs) VALUES {values*};",
+      values = glue::glue_sql(
+        "({update_tables_list$links_update_table$id}, {update_tables_list$links_update_table$url_pdf}, {update_tables_list$links_update_table$url_doi}, {update_tables_list$links_update_table$url_source}, {update_tables_list$links_update_table$url_docs})",
         .con = con
       ),
       .con = con

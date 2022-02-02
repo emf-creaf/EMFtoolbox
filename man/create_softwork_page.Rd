@@ -6,10 +6,11 @@
 \usage{
 create_softwork_page(
   resource_id,
-  dest = fs::path(Sys.getenv("WEB_PATH"), "static", "softworks", resource_id),
+  dest = fs::path(Sys.getenv("WEB_PATH"), "content", "software", resource_id),
   .con = NULL,
   .render_quiet = TRUE,
-  .force = FALSE
+  .force = FALSE,
+  .input = "README.Rmd"
 )
 }
 \arguments{

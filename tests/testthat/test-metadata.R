@@ -6,12 +6,12 @@ test_that("use_metadata_yml works as expected", {
   # update and creation
   core_yml <- suppressMessages(use_metadata_yml())
   fbb_yml <- suppressMessages(
-    use_metadata_yml(emf_type = 'workflow', nodes = c('foo', 'bar', 'baz'), author_aff = 'tururu')
+    use_metadata_yml(emf_type = 'workflow', nodes = c('foo', 'bar', 'baz'), links = list(url_doi = 'example.com'))
   )
   expect_identical(core_yml$emf_type, '')
   expect_identical(fbb_yml$emf_type, 'workflow')
   expect_identical(fbb_yml$nodes, c('foo', 'bar', 'baz'))
-  expect_identical(fbb_yml$author_aff, 'tururu')
+  expect_identical(fbb_yml$links$url_doi, 'example.com')
 
 })
 
@@ -25,6 +25,7 @@ test_that("files are created correctly", {
   expect_s3_class((metadata_yml <- read_metadata_file(metadata_path)), 'yml')
   expect_identical(metadata_yml$id, '')
   expect_identical(metadata_yml$emf_type, '')
+  expect_identical(metadata_yml$links$url_doi, '')
   expect_true(metadata_yml$emf_draft)
 })
 
@@ -67,8 +68,8 @@ test_that("metadata collection helpers work properly", {
   expect_identical(metadata_yml$emf_type, 'workflow')
   expect_false(metadata_yml$emf_draft)
   expect_identical(metadata_yml$authors, c('vgranda', 'mr_dummy', 'emf', 'rmolowni', 'mcaceres'))
-  expect_identical(metadata_yml$authors_aff, c('CREAF', 'dummy research center', 'CREAF', 'CREAF', 'CREAF'))
   expect_identical(metadata_yml$resource_link, 'workflows/dummy_workflow')
+  expect_identical(metadata_yml$links$url_doi, 'example.com')
   expect_identical(metadata_yml$thematic, 'dummy')
   expect_identical(metadata_yml$dummy_workflow_field_1, 'dummy')
   expect_identical(metadata_yml$dummy_workflow_field_2, 'dummydummy')
@@ -89,8 +90,8 @@ test_that("metadata collection helpers work properly", {
   expect_type((update_tables_list <- prepare_update_metadata_tables(metadata_collected)), 'list')
   expect_named(
     update_tables_list, c(
-      'resources_update_table', 'tags_update_table', 'nodes_update_table',
-      'authors_update_table', 'requirements_update_table'
+      'resources_update_table', 'resource_tags_update_table', 'nodes_update_table',
+      'resource_authors_update_table', 'requirements_update_table', 'links_update_table'
     )
   )
   purrr::map(.x = update_tables_list, .f = expect_s3_class, class = 'tbl_df')
@@ -123,6 +124,16 @@ test_that("metadata collection helpers work properly", {
   expect_identical(metadata_collected$thematic, resources_db_updated$thematic)
   expect_identical(metadata_collected$dummy_workflow_field_1, resources_db_updated$dummy_workflow_field_1)
   expect_identical(metadata_collected$dummy_workflow_field_2, resources_db_updated$dummy_workflow_field_2)
+  resource_authors_db_updated <- dplyr::tbl(emf_database, 'resource_authors') %>%
+    dplyr::filter(id == 'dummy_workflow') %>%
+    dplyr::select(-resource_authors_pk) %>%
+    dplyr::collect()
+  expect_setequal(metadata_collected$authors, resource_authors_db_updated$author_id)
+  resource_tags_db_updated <- dplyr::tbl(emf_database, 'resource_tags') %>%
+    dplyr::filter(id == 'dummy_workflow') %>%
+    dplyr::select(-resource_tags_pk) %>%
+    dplyr::collect()
+  expect_setequal(metadata_collected$tags, resource_tags_db_updated$tag_id)
 
   # if we try again, compare metadata tables should return invisible FALSE
   expect_false(collect_metadata(emf_database, .dry = FALSE))
@@ -200,7 +211,7 @@ test_that("updated database is correct", {
   ))
 
   expect_s3_class(
-    (tags_db <- dplyr::tbl(emf_database, 'tags') %>%
+    (tags_db <- dplyr::tbl(emf_database, 'resource_tags') %>%
        dplyr::filter(
          id %in% c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
        ) %>%
@@ -208,11 +219,11 @@ test_that("updated database is correct", {
     'tbl_df'
   )
   expect_equal(nrow(tags_db), 15) # 5 resources x 3 tags each
-  expect_identical(
+  expect_setequal(
     unique(tags_db$id),
     c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
   )
-  expect_true(all(tags_db$tag %in% c('dummy', 'tururu', 'larara')))
+  expect_true(all(tags_db$tag_id %in% c('dummy', 'tururu', 'larara')))
 
   expect_s3_class(
     (nodes_db <- dplyr::tbl(emf_database, 'nodes') %>%
@@ -223,7 +234,7 @@ test_that("updated database is correct", {
     'tbl_df'
   )
   expect_equal(nrow(nodes_db), 20) # 5 resources x 4 nodes each
-  expect_identical(
+  expect_setequal(
     unique(nodes_db$id),
     c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
   )
@@ -232,7 +243,7 @@ test_that("updated database is correct", {
   )))
 
   expect_s3_class(
-    (authors_db <- dplyr::tbl(emf_database, 'authors') %>%
+    (authors_db <- dplyr::tbl(emf_database, 'resource_authors') %>%
        dplyr::filter(
          id %in% c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
        ) %>%
@@ -240,17 +251,13 @@ test_that("updated database is correct", {
     'tbl_df'
   )
   expect_equal(nrow(authors_db), 25) # 5 resources x 5 authors each
-  expect_identical(
+  expect_setequal(
     unique(authors_db$id),
     c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
   )
-  expect_identical(
-    unique(authors_db$author),
+  expect_setequal(
+    unique(authors_db$author_id),
     c('vgranda', 'mr_dummy', 'emf', 'rmolowni', 'mcaceres')
-  )
-  expect_identical(
-    unique(authors_db$author_aff),
-    c('CREAF', 'dummy research center')
   )
 
   expect_s3_class(
@@ -262,7 +269,7 @@ test_that("updated database is correct", {
     'tbl_df'
   )
   expect_equal(nrow(requirements_db), 5) # 5 resources x 1 requirements each
-  expect_identical(
+  expect_setequal(
     unique(requirements_db$id),
     c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
   )
@@ -324,7 +331,7 @@ test_that("collecting external models works", {
   expected_names <- c(
     "id", "title", "emf_type", "emf_public", "emf_automatized",
     "emf_reproducible", "emf_draft", "emf_data_type", "model_repository", "tags",
-    "nodes", "authors", "authors_aff", "requirements"
+    "nodes", "authors", "requirements", "links", "description"
   )
 
   expect_s3_class((external_models_table <- external_models_transform()), 'tbl_df')

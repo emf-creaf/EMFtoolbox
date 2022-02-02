@@ -9,7 +9,8 @@ render_rd_fragment(
   dest,
   .render_quiet = TRUE,
   .force = FALSE,
-  .con = NULL
+  .con = NULL,
+  .input = NULL
 )
 }
 \arguments{

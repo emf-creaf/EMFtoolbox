@@ -63,7 +63,7 @@ create_queries_list <- list(
 
   create_nodes_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS nodes(
-      node_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      node_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       node TEXT,
       id TEXT,
       CONSTRAINT fk_resources
@@ -74,20 +74,8 @@ create_queries_list <- list(
     .con = emf_database
   ),
 
-  create_authors_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS authors(
-      pk_authors INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-      author_id TEXT,
-      name TEXT,
-      surname TEXT,
-      aff TEXT,
-      aff_link TEXT
-    );",
-    .con = emf_database
-  ),
-
   create_resource_authors_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS authors(
+    "CREATE TABLE IF NOT EXISTS resource_authors(
       resource_authors_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       author_id TEXT,
       id TEXT,
@@ -99,9 +87,21 @@ create_queries_list <- list(
     .con = emf_database
   ),
 
+  create_authors_query = glue::glue_sql(
+    "CREATE TABLE IF NOT EXISTS authors(
+      authors_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      author_id TEXT,
+      name TEXT,
+      surname TEXT,
+      aff TEXT,
+      aff_link TEXT
+    );",
+    .con = emf_database
+  ),
+
   create_requirements_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS requirements(
-      requirement_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      requirement_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       requirement TEXT,
       id TEXT,
       CONSTRAINT fk_resources
@@ -112,17 +112,8 @@ create_queries_list <- list(
     .con = emf_database
   ),
 
-  create_tags_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS tags(
-      pk_tags INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-      tag_id TEXT,
-      tag_description TEXT
-    );",
-    .con = emf_database
-  ),
-
   create_resource_tags_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS authors(
+    "CREATE TABLE IF NOT EXISTS resource_tags(
       resource_tags_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       tag_id TEXT,
       id TEXT,
@@ -134,11 +125,20 @@ create_queries_list <- list(
     .con = emf_database
   ),
 
+  create_tags_query = glue::glue_sql(
+    "CREATE TABLE IF NOT EXISTS tags(
+      tags_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      tag_id TEXT,
+      tag_description TEXT
+    );",
+    .con = emf_database
+  ),
+
   create_links_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS links(
       link_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       id TEXT,
-      url_pfd TEXT,
+      url_pdf TEXT,
       url_doi TEXT,
       url_source TEXT,
       url_docs TEXT,
@@ -152,7 +152,7 @@ create_queries_list <- list(
 
   create_metadata_definitions_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS metadata_definitions(
-      field_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      field_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       field TEXT,
       scopes TEXT,
       categories TEXT,
@@ -163,7 +163,7 @@ create_queries_list <- list(
 
   create_resources_last_commit_query = glue::glue_sql(
     "CREATE TABLE IF NOT EXISTS resources_last_commit(
-      hash_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      hash_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       last_commit_hash TEXT,
       id TEXT,
       CONSTRAINT fk_resources
@@ -211,7 +211,7 @@ indexes_queries_list <- list(
     "CREATE INDEX IF NOT EXISTS resource_tags_index ON resource_tags(tag_id, id);"
   ),
   links_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS link_index ON links(lid);"
+    "CREATE INDEX IF NOT EXISTS link_index ON links(id);"
   ),
   last_commit_index = glue::glue(
     "CREATE INDEX IF NOT EXISTS last_commit_index ON resources_last_commit(id);"
@@ -235,15 +235,14 @@ create_views_list <- list(
         resources.resource_link,
         resources.external_link,
         auth.author,
-        auth.author_aff,
         reqs.requirement,
         tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
-            SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
-            FROM authors
-            GROUP BY authors.id
+            SELECT id, array_agg(author_id) AS author
+            FROM resource_authors
+            GROUP BY resource_authors.id
             ) auth USING (id)
         LEFT JOIN (
             SELECT id, array_agg(requirement) AS requirement
@@ -251,9 +250,9 @@ create_views_list <- list(
             GROUP BY requirements.id
             ) reqs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(tag) AS tag
-            FROM tags
-            GROUP BY tags.id
+            SELECT id, array_agg(tag_id) AS tag
+            FROM resource_tags
+            GROUP BY resource_tags.id
             ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
@@ -278,15 +277,14 @@ create_views_list <- list(
         resources.resource_link,
         resources.external_link,
         auth.author,
-        auth.author_aff,
         reqs.requirement,
         tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
-            SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
-            FROM authors
-            GROUP BY authors.id
+            SELECT id, array_agg(author_id) AS author
+            FROM resource_authors
+            GROUP BY resource_authors.id
             ) auth USING (id)
         LEFT JOIN (
             SELECT id, array_agg(requirement) AS requirement
@@ -294,9 +292,9 @@ create_views_list <- list(
             GROUP BY requirements.id
             ) reqs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(tag) AS tag
-            FROM tags
-            GROUP BY tags.id
+            SELECT id, array_agg(tag_id) AS tag
+            FROM resource_tags
+            GROUP BY resource_tags.id
             ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
@@ -323,15 +321,14 @@ create_views_list <- list(
         resources.external_link,
         resources.model_repository,
         auth.author,
-        auth.author_aff,
         reqs.requirement,
         tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
-            SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
-            FROM authors
-            GROUP BY authors.id
+            SELECT id, array_agg(author_id) AS author
+            FROM resource_authors
+            GROUP BY resource_authors.id
             ) auth USING (id)
         LEFT JOIN (
             SELECT id, array_agg(requirement) AS requirement
@@ -339,9 +336,9 @@ create_views_list <- list(
             GROUP BY requirements.id
             ) reqs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(tag) AS tag
-            FROM tags
-            GROUP BY tags.id
+            SELECT id, array_agg(tag_id) AS tag
+            FROM resource_tags
+            GROUP BY resource_tags.id
             ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
@@ -368,15 +365,14 @@ create_views_list <- list(
         resources.external_link,
         resources.data_repository,
         auth.author,
-        auth.author_aff,
         reqs.requirement,
         tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
-            SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
-            FROM authors
-            GROUP BY authors.id
+            SELECT id, array_agg(author_id) AS author
+            FROM resource_authors
+            GROUP BY resource_authors.id
             ) auth USING (id)
         LEFT JOIN (
             SELECT id, array_agg(requirement) AS requirement
@@ -384,9 +380,9 @@ create_views_list <- list(
             GROUP BY requirements.id
             ) reqs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(tag) AS tag
-            FROM tags
-            GROUP BY tags.id
+            SELECT id, array_agg(tag_id) AS tag
+            FROM resource_tags
+            GROUP BY resource_tags.id
             ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node
@@ -411,15 +407,14 @@ create_views_list <- list(
         resources.resource_link,
         resources.external_link,
         auth.author,
-        auth.author_aff,
         reqs.requirement,
         tags.tag,
         edges.node
       FROM resources
         LEFT JOIN (
-            SELECT id, array_agg(author) AS author, array_agg(author_aff) AS author_aff
-            FROM authors
-            GROUP BY authors.id
+            SELECT id, array_agg(author_id) AS author
+            FROM resource_authors
+            GROUP BY resource_authors.id
             ) auth USING (id)
         LEFT JOIN (
             SELECT id, array_agg(requirement) AS requirement
@@ -427,9 +422,9 @@ create_views_list <- list(
             GROUP BY requirements.id
             ) reqs USING (id)
         LEFT JOIN (
-            SELECT id, array_agg(tag) AS tag
-            FROM tags
-            GROUP BY tags.id
+            SELECT id, array_agg(tag_id) AS tag
+            FROM resource_tags
+            GROUP BY resource_tags.id
             ) tags USING (id)
         LEFT JOIN (
             SELECT id, array_agg(node) AS node

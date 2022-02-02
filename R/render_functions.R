@@ -16,15 +16,21 @@
 #' render_rd_fragment('test_dummy_workflow')
 #'
 #' @export
-render_rd_fragment <- function(resource_id, dest, .render_quiet = TRUE, .force = FALSE, .con = NULL) {
+render_rd_fragment <- function(
+  resource_id, dest, .render_quiet = TRUE, .force = FALSE, .con = NULL, .input = NULL
+) {
+
+  if (is.null(.input)) {
+    .input <- glue::glue("{resource_id}.Rmd")
+  }
 
   # clone the repository in a temporal folder that will be cleaned afterwards
   should_be_updated <- create_from_emf_github(resource_id, .con = .con)
 
   # if file does not exists, it doesn't matter if should be updated or not
-  if (!fs::file_exists(glue::glue("{resource_id}.Rmd"))) {
+  if (!fs::file_exists(.input)) {
     usethis::ui_oops("Oops! Something went wrong with {resource_id}")
-    usethis::ui_stop("{resource_id}.Rmd file not found in {resource_id} repository")
+    usethis::ui_stop("{.input} file not found in {resource_id} repository")
   }
 
   # Check if the page should be updated and there is no force in play
@@ -34,7 +40,7 @@ render_rd_fragment <- function(resource_id, dest, .render_quiet = TRUE, .force =
 
   # render the Rmd
   rmarkdown::render(
-    input = glue::glue("{resource_id}.Rmd"),
+    input = .input,
     output_format = rmarkdown::md_document(variant = 'markdown'),
     output_file = glue::glue("{resource_id}.md"),
     quiet = .render_quiet
@@ -139,7 +145,7 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
 
 }
 
-create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force) {
+create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force, .input) {
 
   # connect to database if needed
   if (is.null(.con)) {
@@ -189,9 +195,9 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
 
   # Check if dest exists, if not, not matter the commit, we need to create the page
   if (!fs::file_exists(fs::path(dest, 'index_md'))) {
-    fragment <- render_rd_fragment(resource_id, dest, .force = TRUE, .con = .con)
+    fragment <- render_rd_fragment(resource_id, dest, .force = TRUE, .con = .con, .input = .input)
   } else {
-    fragment <- render_rd_fragment(resource_id, dest, .con = .con)
+    fragment <- render_rd_fragment(resource_id, dest, .con = .con, .input = .input)
   }
 
   # Check if the workflow page must be updated by the last commit.
@@ -240,7 +246,7 @@ create_workflow_page <- function(
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'workflows', resource_id),
   .con = NULL, .render_quiet = TRUE, .force = FALSE
 ) {
-  create_rmd_page('workflow', resource_id, dest, .con, .render_quiet, .force)
+  create_rmd_page('workflow', resource_id, dest, .con, .render_quiet, .force, .input = NULL)
 }
 
 #' Render pkgdown for softworks
@@ -260,60 +266,62 @@ create_workflow_page <- function(
 #' @export
 create_softwork_page <- function(
   resource_id,
-  dest = fs::path(Sys.getenv('WEB_PATH'), 'static', 'softworks', resource_id),
-  .con = NULL, .render_quiet = TRUE, .force = FALSE
+  dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'software', resource_id),
+  .con = NULL, .render_quiet = TRUE, .force = FALSE, .input = 'README.Rmd'
 ) {
 
-  # first things first, check if the provided resource is a public softwork
-  if (nrow(public_softworks(softwork == resource_id, .con = .con)) < 1) {
-    usethis::ui_oops('Oops!')
-    usethis::ui_stop(
-      "{resource_id} not found in public softworks table. Stopping creation of {resource_id} page"
-    )
-  }
+  create_rmd_page('softwork', resource_id, dest, .con, .render_quiet, .force, .input)
 
-  # clone the repository in a temporal folder that will be cleaned afterwards
-  should_be_updated <- create_from_emf_github(resource_id, .con = .con)
-
-  # if the folder does not exists, then it should be updated even if the commit is the same as in the db
-  if (!fs::dir_exists(dest)) {
-    should_be_updated <- TRUE
-    fs::dir_create(dest)
-  }
-
-  # now in a folder call as the resource, it must be the static files we need to move to the web folder
-  if (!should_be_updated & !.force) {
-    usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
-    return(invisible(FALSE))
-  }
-
-  # we need a list of pkgdown yml parameters to override
-  override_list <- list(
-    destination = resource_id,
-    template = list(package = 'EMFtoolbox'),
-    navbar = list(
-      structure = list(
-        left = c('home', 'reference', 'articles', 'news'),
-        right = c('github')
-      ),
-      components = list(
-        home = list(text = 'Back to EMF', href = '/')
-      )
-    )
-  )
-
-  # now we can render and create the folder with the resource_id name
-  usethis::ui_info("Building {resource_id} pkgdown")
-  rendering_output <- capture.output(pkgdown::build_site(override = override_list, preview = FALSE))
-  if (!.render_quiet) {
-    usethis::ui_info(rendering_output)
-  }
-
-  usethis::ui_info('Replacing old {resource_id} pkgdown folder in web project with the new build')
-  fs::dir_delete(dest)
-  fs::dir_copy(resource_id, dest)
-  usethis::ui_done("Succesfully created new build of {resource_id} at {usethis::ui_path(dest)}")
-  return(invisible(TRUE))
+  # # first things first, check if the provided resource is a public softwork
+  # if (nrow(public_softworks(softwork == resource_id, .con = .con)) < 1) {
+  #   usethis::ui_oops('Oops!')
+  #   usethis::ui_stop(
+  #     "{resource_id} not found in public softworks table. Stopping creation of {resource_id} page"
+  #   )
+  # }
+  #
+  # # clone the repository in a temporal folder that will be cleaned afterwards
+  # should_be_updated <- create_from_emf_github(resource_id, .con = .con)
+  #
+  # # if the folder does not exists, then it should be updated even if the commit is the same as in the db
+  # if (!fs::dir_exists(dest)) {
+  #   should_be_updated <- TRUE
+  #   fs::dir_create(dest)
+  # }
+  #
+  # # now in a folder call as the resource, it must be the static files we need to move to the web folder
+  # if (!should_be_updated & !.force) {
+  #   usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
+  #   return(invisible(FALSE))
+  # }
+  #
+  # # we need a list of pkgdown yml parameters to override
+  # override_list <- list(
+  #   destination = resource_id,
+  #   template = list(package = 'EMFtoolbox'),
+  #   navbar = list(
+  #     structure = list(
+  #       left = c('home', 'reference', 'articles', 'news'),
+  #       right = c('github')
+  #     ),
+  #     components = list(
+  #       home = list(text = 'Back to EMF', href = '/')
+  #     )
+  #   )
+  # )
+  #
+  # # now we can render and create the folder with the resource_id name
+  # usethis::ui_info("Building {resource_id} pkgdown")
+  # rendering_output <- capture.output(pkgdown::build_site(override = override_list, preview = FALSE))
+  # if (!.render_quiet) {
+  #   usethis::ui_info(rendering_output)
+  # }
+  #
+  # usethis::ui_info('Replacing old {resource_id} pkgdown folder in web project with the new build')
+  # fs::dir_delete(dest)
+  # fs::dir_copy(resource_id, dest)
+  # usethis::ui_done("Succesfully created new build of {resource_id} at {usethis::ui_path(dest)}")
+  # return(invisible(TRUE))
 
 }
 
@@ -336,7 +344,7 @@ create_tech_doc_page <- function(
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'tech_docs', resource_id),
   .con = NULL, .render_quiet = TRUE, .force = FALSE
 ) {
-  create_rmd_page('tech_doc', resource_id, dest, .con, .render_quiet, .force)
+  create_rmd_page('tech_doc', resource_id, dest, .con, .render_quiet, .force, .input = NULL)
 }
 
 #' Create a tmodel page in the web project
