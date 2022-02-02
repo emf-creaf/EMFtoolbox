@@ -219,220 +219,95 @@ indexes_queries_list <- list(
 )
 
 ## Create the Views
+
+# common code
+common_view_code <- glue::glue_sql(
+  "resources.title,
+  resources.thematic,
+  resources.date,
+  resources.date_lastmod,
+  resources.emf_draft,
+  resources.description,
+  resources.emf_type,
+  resources.emf_data_type,
+  resources.emf_public,
+  resources.model_repository,
+  resources.data_repository,
+  auth.author,
+  reqs.requirement,
+  tags.tag,
+  nodes.node,
+  links.url_doi,
+  links.url_pdf,
+  links.url_docs,
+  links.url_source
+FROM resources
+  LEFT JOIN (
+      SELECT id, array_agg(author_id) AS author
+      FROM resource_authors
+      GROUP BY resource_authors.id
+      ) auth USING (id)
+  LEFT JOIN (
+      SELECT id, array_agg(requirement) AS requirement
+      FROM requirements
+      GROUP BY requirements.id
+      ) reqs USING (id)
+  LEFT JOIN (
+      SELECT id, array_agg(tag_id) AS tag
+      FROM resource_tags
+      GROUP BY resource_tags.id
+      ) tags USING (id)
+  LEFT JOIN (
+      SELECT id, array_agg(node) AS node
+      FROM nodes
+      GROUP BY nodes.id
+      ) nodes USING (id)
+  LEFT JOIN (
+      SELECT id, url_doi, url_pdf, url_source, url_docs FROM links
+      ) links USING (id)",
+  .con = emf_database
+)
+# views
 create_views_list <- list(
   public_workflows = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_workflows AS
       SELECT resources.id AS workflow,
-        resources.title,
-        resources.thematic,
-        resources.date,
-        resources.date_lastmod,
-        resources.resource_link AS link,
-        resources.emf_draft,
-        resources.description,
-        resources.emf_type,
-        resources.emf_public,
-        resources.resource_link,
-        resources.external_link,
-        auth.author,
-        reqs.requirement,
-        tags.tag,
-        edges.node
-      FROM resources
-        LEFT JOIN (
-            SELECT id, array_agg(author_id) AS author
-            FROM resource_authors
-            GROUP BY resource_authors.id
-            ) auth USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(requirement) AS requirement
-            FROM requirements
-            GROUP BY requirements.id
-            ) reqs USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(tag_id) AS tag
-            FROM resource_tags
-            GROUP BY resource_tags.id
-            ) tags USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(node) AS node
-            FROM nodes
-            GROUP BY nodes.id
-            ) edges USING (id)
+      {common_view_code}
       WHERE resources.emf_type = 'workflow';
-    "
+    ",
+    .con = emf_database
   ),
   public_tech_docs = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_tech_docs AS
       SELECT resources.id AS tech_doc,
-        resources.title,
-        resources.thematic,
-        resources.date,
-        resources.date_lastmod,
-        resources.resource_link AS link,
-        resources.emf_draft,
-        resources.description,
-        resources.emf_type,
-        resources.emf_public,
-        resources.resource_link,
-        resources.external_link,
-        auth.author,
-        reqs.requirement,
-        tags.tag,
-        edges.node
-      FROM resources
-        LEFT JOIN (
-            SELECT id, array_agg(author_id) AS author
-            FROM resource_authors
-            GROUP BY resource_authors.id
-            ) auth USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(requirement) AS requirement
-            FROM requirements
-            GROUP BY requirements.id
-            ) reqs USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(tag_id) AS tag
-            FROM resource_tags
-            GROUP BY resource_tags.id
-            ) tags USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(node) AS node
-            FROM nodes
-            GROUP BY nodes.id
-            ) edges USING (id)
+    {common_view_code}
       WHERE resources.emf_type = 'tech_doc';
-    "
+    ",
+    .con = emf_database
   ),
   public_models = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_models AS
       SELECT resources.id AS model,
-        resources.title,
-        resources.thematic,
-        resources.date,
-        resources.date_lastmod,
-        resources.resource_link AS link,
-        resources.emf_draft,
-        resources.description,
-        resources.emf_type,
-        resources.emf_data_type,
-        resources.emf_public,
-        resources.resource_link,
-        resources.external_link,
-        resources.model_repository,
-        auth.author,
-        reqs.requirement,
-        tags.tag,
-        edges.node
-      FROM resources
-        LEFT JOIN (
-            SELECT id, array_agg(author_id) AS author
-            FROM resource_authors
-            GROUP BY resource_authors.id
-            ) auth USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(requirement) AS requirement
-            FROM requirements
-            GROUP BY requirements.id
-            ) reqs USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(tag_id) AS tag
-            FROM resource_tags
-            GROUP BY resource_tags.id
-            ) tags USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(node) AS node
-            FROM nodes
-            GROUP BY nodes.id
-            ) edges USING (id)
+    {common_view_code}
       WHERE resources.emf_type = 'model';
-    "
+    ",
+    .con = emf_database
   ),
   public_data = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_data AS
       SELECT resources.id AS data,
-        resources.title,
-        resources.thematic,
-        resources.date,
-        resources.date_lastmod,
-        resources.resource_link AS link,
-        resources.emf_draft,
-        resources.description,
-        resources.emf_type,
-        resources.emf_data_type,
-        resources.emf_public,
-        resources.resource_link,
-        resources.external_link,
-        resources.data_repository,
-        auth.author,
-        reqs.requirement,
-        tags.tag,
-        edges.node
-      FROM resources
-        LEFT JOIN (
-            SELECT id, array_agg(author_id) AS author
-            FROM resource_authors
-            GROUP BY resource_authors.id
-            ) auth USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(requirement) AS requirement
-            FROM requirements
-            GROUP BY requirements.id
-            ) reqs USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(tag_id) AS tag
-            FROM resource_tags
-            GROUP BY resource_tags.id
-            ) tags USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(node) AS node
-            FROM nodes
-            GROUP BY nodes.id
-            ) edges USING (id)
+    {common_view_code}
       WHERE resources.emf_type = 'data';
-    "
+    ",
+    .con = emf_database
   ),
   public_softworks = glue::glue_sql(
     "CREATE OR REPLACE VIEW public_softworks AS
       SELECT resources.id AS softwork,
-        resources.title,
-        resources.thematic,
-        resources.date,
-        resources.date_lastmod,
-        resources.resource_link AS link,
-        resources.emf_draft,
-        resources.description,
-        resources.emf_type,
-        resources.emf_public,
-        resources.resource_link,
-        resources.external_link,
-        auth.author,
-        reqs.requirement,
-        tags.tag,
-        edges.node
-      FROM resources
-        LEFT JOIN (
-            SELECT id, array_agg(author_id) AS author
-            FROM resource_authors
-            GROUP BY resource_authors.id
-            ) auth USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(requirement) AS requirement
-            FROM requirements
-            GROUP BY requirements.id
-            ) reqs USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(tag_id) AS tag
-            FROM resource_tags
-            GROUP BY resource_tags.id
-            ) tags USING (id)
-        LEFT JOIN (
-            SELECT id, array_agg(node) AS node
-            FROM nodes
-            GROUP BY nodes.id
-            ) edges USING (id)
+    {common_view_code}
       WHERE resources.emf_type = 'softwork';
-    "
+    ",
+    .con = emf_database
   )
 )
 

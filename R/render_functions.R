@@ -519,7 +519,13 @@ frontmatter_generator <- function(resource_metadata, category, .external = FALSE
       lastmod = resource_metadata$date_lastmod,
       summary = resource_metadata$description,
       model_repository = resource_metadata$model_repository,
-      data_repository = resource_metadata$data_repository
+      data_repository = resource_metadata$data_repository,
+      links = list(
+        url_doi = resource_metadata$url_doi,
+        url_pdf = resource_metadata$url_pdf,
+        url_source = resource_metadata$url_source,
+        url_docs = resource_metadata$url_docs
+      )
     ) %>%
     purrr::map(nas_to_empty_strings) %>%
     ymlthis::as_yml() %>%
@@ -541,10 +547,7 @@ md_content_generator <- function(resource_metadata, .external = FALSE) {
     "## Description",
     "",
     description = resource_metadata$description,
-    "",
-    glue::glue("## Link to {resource_metadata$emf_type}"),
-    "",
-    link = glue::glue("For more information see {resource_metadata$external_link}")
+    ""
   )
 
   if (!isTRUE(.external)) {

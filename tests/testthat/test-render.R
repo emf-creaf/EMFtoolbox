@@ -26,13 +26,16 @@ test_that("create_workflow_page works as expected", {
     create_workflow_page('test_dummy_workflow', .con = emf_database)
   )
   expect_true(fs::file_exists(md_path))
+  frontmatter <- rmarkdown::yaml_front_matter(md_path)
+  expect_identical(frontmatter$title, 'Dummy workflow for testing')
+  expect_type(frontmatter$links, 'list')
+  expect_named(frontmatter$links, c('url_doi', 'url_pdf', 'url_source', 'url_docs'))
   expect_true(any(
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
-      'title: Dummy workflow for testing'
+      "Tururu's"
   ))
-  expect_true(any(
-    file_lines == "Tururu's"
-  ))
+
+
   expect_error(
     create_workflow_page('test_dummy_softwork', .con = emf_database),
     "not found in public workflows table"
@@ -56,6 +59,10 @@ test_that("create_softwork_page works as expected", {
     "not found in public softworks table"
   )
   expect_false(create_softwork_page('test_dummy_softwork', .con = emf_database))
+  frontmatter <- rmarkdown::yaml_front_matter(pkgdown_path)
+  expect_identical(frontmatter$title, 'test_dummy_softwork')
+  expect_type(frontmatter$links, 'list')
+  expect_named(frontmatter$links, c('url_doi', 'url_pdf', 'url_source', 'url_docs'))
 })
 
 test_that("create_tech_doc_page works as expected", {
@@ -69,12 +76,13 @@ test_that("create_tech_doc_page works as expected", {
     create_tech_doc_page('test_dummy_tech_doc', .con = emf_database)
   )
   expect_true(fs::file_exists(md_path))
+  frontmatter <- rmarkdown::yaml_front_matter(md_path)
+  expect_identical(frontmatter$title, 'Test dummy tech doc')
+  expect_type(frontmatter$links, 'list')
+  expect_named(frontmatter$links, c('url_doi', 'url_pdf', 'url_source', 'url_docs'))
   expect_true(any(
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
-      'title: Test dummy tech doc'
-  ))
-  expect_true(any(
-    file_lines == "Tururu's"
+      "Tururu's"
   ))
   expect_error(
     create_tech_doc_page('test_dummy_softwork', .con = emf_database),
@@ -108,6 +116,11 @@ test_that("create_model_page works as expected", {
   expect_false(
     create_model_page('test_dummy_model', .con = emf_database)
   )
+  frontmatter <- rmarkdown::yaml_front_matter(md_path)
+  expect_identical(frontmatter$title, 'Test dummy model')
+  expect_type(frontmatter$links, 'list')
+  expect_named(frontmatter$links, c('url_doi', 'url_pdf', 'url_source', 'url_docs'))
+
 })
 
 test_that("create_data_page works as expected", {
@@ -133,6 +146,10 @@ test_that("create_data_page works as expected", {
   expect_false(
     create_data_page('test_dummy_data', .con = emf_database)
   )
+  frontmatter <- rmarkdown::yaml_front_matter(md_path)
+  expect_identical(frontmatter$title, 'Test dummy data')
+  expect_type(frontmatter$links, 'list')
+  expect_named(frontmatter$links, c('url_doi', 'url_pdf', 'url_source', 'url_docs'))
 })
 
 test_that("update_resource_pages_by_type works as expected", {
