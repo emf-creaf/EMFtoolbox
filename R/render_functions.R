@@ -136,8 +136,8 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
   written <- write_lines_utf8(lines = c(yaml_frontmatter, md_content), path = fs::path(dest, 'index.md'))
 
   if (!written) {
-    usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
-    return(invisible(FALSE))
+    usethis::ui_info("{usethis::ui_path('index.md')} content didn't change, ommiting writting step")
+    return(invisible(TRUE))
   }
 
   usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}")
@@ -166,15 +166,6 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
 
   filter_expr <- rlang::parse_expr(glue::glue("{emf_type} == '{resource_id}'"))
 
-  # filter_expr <- switch(
-  #   emf_type,
-  #   'workflow' = rlang::expr(workflow == !!resource_id),
-  #   'tech_doc' = rlang::expr(tech_doc == !!resource_id),
-  #   'model' = rlang::expr(model == !!resource_id),
-  #   'data' = rlang::expr(data == !!resource_id),
-  #   'softwork' = rlang::expr(softwork == !!resource_id)
-  # )
-
   # first things first, check if the provided resource is a public workflow
   # get resource metadata
   resource_metadata <- use_public_table(category, filter_expr, .con = .con)
@@ -194,11 +185,11 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
   }
 
   # Check if dest exists, if not, not matter the commit, we need to create the page
-  if (!fs::file_exists(fs::path(dest, 'index_md'))) {
-    fragment <- render_rd_fragment(resource_id, dest, .force = TRUE, .con = .con, .input = .input)
-  } else {
-    fragment <- render_rd_fragment(resource_id, dest, .con = .con, .input = .input)
+  if (!fs::file_exists(fs::path(dest, 'index.md'))) {
+    .force <- TRUE
   }
+
+  fragment <- render_rd_fragment(resource_id, dest, .force = .force, .con = .con, .input = .input)
 
   # Check if the workflow page must be updated by the last commit.
   # If there is a new commit, we start the process but check later if the fragment is different or not.
@@ -217,8 +208,8 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
   written <- write_lines_utf8(lines = c(yaml_frontmatter, fragment), path = fs::path(dest, 'index.md'))
 
   if (!written) {
-    usethis::ui_info("{usethis::ui_path(dest)} already up-to-date, not overwritting.")
-    return(invisible(FALSE))
+    usethis::ui_info("{usethis::ui_path('index.md')} content didn't change, ommiting writting step")
+    return(invisible(TRUE))
   }
 
   usethis::ui_done("{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}")
@@ -546,7 +537,7 @@ md_content_generator <- function(resource_metadata, .external = FALSE) {
     "",
     "## Description",
     "",
-    description = resource_metadata$description,
+    resource_metadata$description,
     ""
   )
 

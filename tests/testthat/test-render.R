@@ -35,7 +35,6 @@ test_that("create_workflow_page works as expected", {
       "Tururu's"
   ))
 
-
   expect_error(
     create_workflow_page('test_dummy_softwork', .con = emf_database),
     "not found in public workflows table"
@@ -43,6 +42,11 @@ test_that("create_workflow_page works as expected", {
   expect_false(
     create_workflow_page('test_dummy_workflow', .con = emf_database)
   )
+  expect_message(
+    (forced_update <- create_workflow_page('test_dummy_workflow', .con = emf_database, .force = TRUE)),
+    "ommiting writting step"
+  )
+  expect_true(forced_update)
 })
 
 test_that("create_softwork_page works as expected", {
@@ -59,6 +63,11 @@ test_that("create_softwork_page works as expected", {
     "not found in public softworks table"
   )
   expect_false(create_softwork_page('test_dummy_softwork', .con = emf_database))
+  expect_message(
+    (forced_update <- create_softwork_page('test_dummy_softwork', .con = emf_database, .force = TRUE)),
+    "ommiting writting step"
+  )
+  expect_true(forced_update)
   frontmatter <- rmarkdown::yaml_front_matter(pkgdown_path)
   expect_identical(frontmatter$title, 'test_dummy_softwork')
   expect_type(frontmatter$links, 'list')
@@ -91,6 +100,11 @@ test_that("create_tech_doc_page works as expected", {
   expect_false(
     create_tech_doc_page('test_dummy_tech_doc', .con = emf_database)
   )
+  expect_message(
+    (forced_update <- create_tech_doc_page('test_dummy_tech_doc', .con = emf_database, .force = TRUE)),
+    "ommiting writting step"
+  )
+  expect_true(forced_update)
 })
 
 test_that("create_model_page works as expected", {
@@ -108,7 +122,7 @@ test_that("create_model_page works as expected", {
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
       'title: Test dummy model'
   ))
-  expect_true(any(stringr::str_detect(file_lines, "For more information see")))
+  expect_true(any(stringr::str_detect(file_lines, "## Description")))
   expect_error(
     create_model_page('test_dummy_softwork', .con = emf_database),
     "not found in public models table"
@@ -116,6 +130,11 @@ test_that("create_model_page works as expected", {
   expect_false(
     create_model_page('test_dummy_model', .con = emf_database)
   )
+  expect_message(
+    (forced_update <- create_model_page('test_dummy_model', .con = emf_database, .force = TRUE)),
+    "ommiting writting step"
+  )
+  expect_true(forced_update)
   frontmatter <- rmarkdown::yaml_front_matter(md_path)
   expect_identical(frontmatter$title, 'Test dummy model')
   expect_type(frontmatter$links, 'list')
@@ -138,7 +157,7 @@ test_that("create_data_page works as expected", {
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
       'title: Test dummy data'
   ))
-  expect_true(any(stringr::str_detect(file_lines, "For more information see")))
+  expect_true(any(stringr::str_detect(file_lines, "## Description")))
   expect_error(
     create_data_page('test_dummy_softwork', .con = emf_database),
     "not found in public data table"
@@ -146,6 +165,11 @@ test_that("create_data_page works as expected", {
   expect_false(
     create_data_page('test_dummy_data', .con = emf_database)
   )
+  expect_message(
+    (forced_update <- create_data_page('test_dummy_data', .con = emf_database, .force = TRUE)),
+    "ommiting writting step"
+  )
+  expect_true(forced_update)
   frontmatter <- rmarkdown::yaml_front_matter(md_path)
   expect_identical(frontmatter$title, 'Test dummy data')
   expect_type(frontmatter$links, 'list')
