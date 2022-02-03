@@ -282,10 +282,15 @@ test_that("use_public_table works as expected", {
     c("workflow", "author", "tag", "emf_draft", "date", "date_lastmod", "description") %in%
       names(emf_public_workflows)
   ))
-  expect_s3_class((public_models <- use_public_table('models', .con = emf_database)), 'tbl')
+  expect_s3_class((emf_public_models <- use_public_table('models', .con = emf_database)), 'tbl')
   expect_true(all(
     c("model", "author", "tag", "emf_draft", "date", "date_lastmod", "description", "model_repository") %in%
-      names(public_models)
+      names(emf_public_models)
+  ))
+  expect_s3_class((emf_public_softworks <- use_public_table('softworks', .con = emf_database)), 'tbl')
+  expect_true(all(
+    c("softwork", "author", "tag", "emf_draft", "date", "date_lastmod", "description") %in%
+      names(emf_public_softworks)
   ))
   expect_s3_class((all_public_resources <- use_public_table('all', .con = emf_database)), 'tbl')
   expect_true(all(
@@ -294,8 +299,13 @@ test_that("use_public_table works as expected", {
       names(all_public_resources)
   ))
   # resource specific methods works
-  expect_identical(emf_public_workflows, public_workflows(.con = emf_database))
-  expect_identical(use_public_table('softworks', .con = emf_database), public_softworks(.con = emf_database))
+  expect_setequal(emf_public_workflows$workflow, public_workflows(.con = emf_database)$workflow)
+  expect_setequal(emf_public_workflows$title, public_workflows(.con = emf_database)$title)
+  # all resources retrieved are public:
+  expect_true(all(emf_public_softworks$emf_public))
+  expect_true(all(emf_public_workflows$emf_public))
+  expect_true(all(emf_public_models$emf_public))
+  expect_true(all(all_public_resources$emf_public))
 })
 
 test_that("collecting external models works", {

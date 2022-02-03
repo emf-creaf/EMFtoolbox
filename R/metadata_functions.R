@@ -182,6 +182,9 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
     purrr::walk(usethis::ui_todo)
   update_metadata_queries(update_tables_list, update_info, con, metadata_yml)
 
+  ## TODO this final check logic must be inside `update_metadata_queries`, and in case of error, it should
+  ## not remove all the resource from the db, but reverting the changes instead (if it was a new resource
+  ## then deleting is fine)
   # check the db is correctly updated (if not dry)
   usethis::ui_info("- checking if the update went well\n")
   final_check <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)$valid_update_list
@@ -580,17 +583,15 @@ use_public_table <- function(
   }
 
   # all is special, we need the the resources table, instead of the public_* tables.
-  if (resource_type == 'all') {
-    res <- dplyr::tbl(.con, 'resources') %>%
-      dplyr::filter(..., emf_public == TRUE) %>%
-      dplyr::collect()
-    return(res)
-  } else {
-    res <- dplyr::tbl(.con, glue::glue("public_{resource_type}")) %>%
-      dplyr::filter(...) %>%
-      dplyr::collect()
-    return(res)
+  table_name <- 'resources'
+  if (resource_type != 'all') {
+    table_name <- glue::glue("public_{resource_type}")
   }
+
+  res <- dplyr::tbl(.con, table_name) %>%
+    dplyr::filter(..., emf_public == TRUE) %>%
+    dplyr::collect()
+  return(res)
 }
 
 #' Retrieve the public workflows table.
