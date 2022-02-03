@@ -4,3 +4,4 @@
 ^data-raw$
 ^metadata\.yml$
 ^.Renviron$
+^README\.Rmd$
