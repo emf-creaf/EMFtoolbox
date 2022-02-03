@@ -7,6 +7,7 @@
 render_rd_fragment(
   resource_id,
   dest,
+  category,
   .render_quiet = TRUE,
   .force = FALSE,
   .con = NULL,

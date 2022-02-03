@@ -7,12 +7,12 @@ withr::defer(pool::poolClose(emf_database))
 test_that('render_rd_fragment works as expected', {
   tmp_dest <- tempdir()
 
-  expect_type(render_rd_fragment('test_dummy_workflow', tmp_dest, .force = TRUE, .con = emf_database), 'character')
+  expect_type(render_rd_fragment('test_dummy_workflow', tmp_dest, "workflows", .force = TRUE, .con = emf_database), 'character')
   expect_error(
-    render_rd_fragment('test_dummy_workflow_not_existent', tmp_dest, .con = emf_database),
+    render_rd_fragment('test_dummy_workflow_not_existent', tmp_dest, "workflows", .con = emf_database),
     "Message: Not Found"
   )
-  expect_error(render_rd_fragment('test_dummy_softwork', tmp_dest, .con = emf_database, .input = 'not_existent_file.Rmd'), 'Rmd file not found')
+  expect_error(render_rd_fragment('test_dummy_softwork', tmp_dest, "softworks", .con = emf_database, .input = 'not_existent_file.Rmd'), 'Rmd file not found')
 })
 
 test_that("create_workflow_page works as expected", {

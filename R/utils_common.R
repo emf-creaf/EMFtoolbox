@@ -214,7 +214,7 @@ capture_yml <- function(yml) {
   utils::capture.output(print(yml))
 }
 
-copy_images <- function(folder = '.', dest, formats = c('png', 'jpg', 'svg')) {
+copy_images <- function(folder = '.', dest, category, formats = c('png', 'jpg', 'svg')) {
   # list images in folders (by formats) and copy them to dest
 
   # list of images
@@ -224,6 +224,13 @@ copy_images <- function(folder = '.', dest, formats = c('png', 'jpg', 'svg')) {
     type = "file",
     regexp = glue::glue("[.]{glue::glue_collapse(formats, '|')}$")
   )
+
+  if (!any(stringr::str_detect(images_list, '^featured.png$'))) {
+    images_list <- c(
+      images_list,
+      system.file('default_featured_images', category, 'featured.png', package = 'EMFtoolbox')
+    )
+  }
 
   if (length(images_list) < 1) {
     usethis::ui_done("No intermediate images needed")

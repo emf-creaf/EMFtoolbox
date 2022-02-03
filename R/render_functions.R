@@ -17,7 +17,7 @@
 #'
 #' @export
 render_rd_fragment <- function(
-  resource_id, dest, .render_quiet = TRUE, .force = FALSE, .con = NULL, .input = NULL
+  resource_id, dest, category, .render_quiet = TRUE, .force = FALSE, .con = NULL, .input = NULL
 ) {
 
   if (is.null(.input)) {
@@ -47,8 +47,10 @@ render_rd_fragment <- function(
   )
 
   # copy intermediate images
-  usethis::ui_info("Copying the intermediate images needed")
-  intermediate_images <- copy_images('.', dest)
+  usethis::ui_info("Copying the intermediate images needed:")
+  intermediate_images <- copy_images('.', dest, category) %>%
+    purrr::walk(usethis::ui_todo)
+
 
   # And now return the html file.
   # We return the html as a readLines object
@@ -189,7 +191,7 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
     .force <- TRUE
   }
 
-  fragment <- render_rd_fragment(resource_id, dest, .force = .force, .con = .con, .input = .input)
+  fragment <- render_rd_fragment(resource_id, dest, category, .force = .force, .con = .con, .input = .input)
 
   # Check if the workflow page must be updated by the last commit.
   # If there is a new commit, we start the process but check later if the fragment is different or not.
