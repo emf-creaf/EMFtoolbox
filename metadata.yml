@@ -12,20 +12,17 @@ authors:
 - vgranda
 - mcaceres
 - rmolowny
-authors_aff:
-- CREAF
-- CREAF
-- CREAF
-resource_link: 'softworks/EMFtoolbox'
 thematic: emf_internal
 tags:
 - R
 - server
 - devops
 requirements:
-- R (>= 2.10)
+- R (>= 4)
 date: 2021-08-11
-date_lastmod: 2021-08-23
+date_lastmod: 2022-02-02
+links:
+  url_source: https://github.com/emf-creaf/EMFtoolbox
 Package: EMFtoolbox
 Title: Tool Box For The EMFverse
 Version: 0.0.0.9000
