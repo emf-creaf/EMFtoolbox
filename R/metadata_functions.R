@@ -186,15 +186,15 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
   ## not remove all the resource from the db, but reverting the changes instead (if it was a new resource
   ## then deleting is fine)
   # check the db is correctly updated (if not dry)
-  usethis::ui_info("- checking if the update went well\n")
-  final_check <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)$valid_update_list
-
-  if (any(final_check)) {
-    delete_resource_from_db(metadata_yml$id, con)
-    usethis::ui_stop(
-      "Something happened when updating the database. Removing {metadata_yml$id} from the resources and children tables."
-    )
-  }
+  # usethis::ui_info("- checking if the update went well\n")
+  # final_check <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)$valid_update_list
+  #
+  # if (any(final_check)) {
+  #   delete_resource_from_db(metadata_yml$id, con)
+  #   usethis::ui_stop(
+  #     "Something happened when updating the database. Removing {metadata_yml$id} from the resources and children tables."
+  #   )
+  # }
 
   usethis::ui_done("Everything ok.")
   return(invisible(TRUE))
@@ -366,6 +366,40 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
 }
 
 update_metadata_queries <- function(update_tables_list, update_info, con, metadata_yml) {
+  # First of all, create a backup of the actual tables for the resource at hand
+  # backup tables
+  resource_id <- metadata_yml$id
+  backup_tables_list <- list(
+    resources_backup_table = dplyr::tbl(con, 'resources') %>%
+      dplyr::filter(id == resource_id) %>%
+      dplyr::mutate(date = as.character(date), date_lastmod = as.character(date_lastmod)) %>%
+      dplyr::collect(),
+    tags_backup_table = dplyr::tbl(con, 'resource_tags') %>%
+      dplyr::filter(id == resource_id) %>%
+      dplyr::select(-resource_tags_pk) %>%
+      dplyr::collect(),
+    nodes_backup_table = dplyr::tbl(con, 'nodes') %>%
+      dplyr::filter(id == resource_id) %>%
+      dplyr::select(-node_pk) %>%
+      dplyr::collect(),
+    authors_backup_table = dplyr::tbl(con, 'resource_authors') %>%
+      dplyr::filter(id == resource_id) %>%
+      dplyr::select(-resource_authors_pk) %>%
+      dplyr::collect(),
+    requirements_backup_table = dplyr::tbl(con, 'requirements') %>%
+      dplyr::filter(id == resource_id) %>%
+      dplyr::select(-requirement_pk) %>%
+      dplyr::collect(),
+    links_backup_table = dplyr::tbl(con, 'links') %>%
+      dplyr::filter(id == resource_id) %>%
+      dplyr::select(-link_pk) %>%
+      dplyr::collect(),
+    commit_backup_table = dplyr::tbl(con, 'resources_last_commit') %>%
+      dplyr::filter(id == resource_id) %>%
+      dplyr::select(-hash_pk) %>%
+      dplyr::collect()
+  )
+
   # prepare the valid update list
   valid_update_list <- c(
     update_info$valid_update_list[1],
@@ -390,7 +424,6 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
     DBI::dbExecute(con, alter_resources_query)
   }
 
-
   # prepare the queries to insert if don't exists or update if exists.
   # This is tricky. Child tables don't have a unique id for the resource (they have with the *_id (i.e tag_id)
   # column, but we can not know that beforehand). Also, for example, for tags, we maybe want to remove some
@@ -410,25 +443,28 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
     .con = con
   )
 
+  # Delete child tables queries. We do it table by table, as that way we can use valid_update_list to run
+  # only the necessary queries (i.e. if only updating authors, the only record deleted is in the
+  # authors table)
   delete_child_tables_queries <- list(
     delete_old_tags = glue::glue_sql(
-      "DELETE FROM resource_tags WHERE id = {metadata_yml$id};",
+      "DELETE FROM resource_tags WHERE id = {resource_id};",
       .con = con
     ),
     delete_old_nodes = glue::glue_sql(
-      "DELETE FROM nodes WHERE id = {metadata_yml$id};",
+      "DELETE FROM nodes WHERE id = {resource_id};",
       .con = con
     ),
     delete_old_authors = glue::glue_sql(
-      "DELETE FROM resource_authors WHERE id = {metadata_yml$id};",
+      "DELETE FROM resource_authors WHERE id = {resource_id};",
       .con = con
     ),
     delete_old_requirements = glue::glue_sql(
-      "DELETE FROM requirements WHERE id = {metadata_yml$id};",
+      "DELETE FROM requirements WHERE id = {resource_id};",
       .con = con
     ),
     delete_old_links = glue::glue_sql(
-      "DELETE FROM links WHERE id = {metadata_yml$id};",
+      "DELETE FROM links WHERE id = {resource_id};",
       .con = con
     )
   )
@@ -482,7 +518,99 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
       ~ DBI::dbExecute(con, .x)
     )
 
+  ## TODO: compare_metadata_tables. If something went wrong, restore the backup records
+  # Now we check update went well and if not, restore the backup tables
+  usethis::ui_info("- checking if the update went well\n")
+  final_check <- compare_metadata_tables(update_tables_list, con, resource_id)$valid_update_list
+
+  if (any(final_check)) {
+    usethis::ui_stop(
+      "Something happened when updating the database. Restoring {resource_id} to the previous state."
+    )
+    # delete_resource_from_db(resource_id, con)
+    restore_resource_from_backup(backup_tables_list, resource_id, con)
+  }
+
   return(invisible(TRUE))
+}
+
+#' Restore from backup
+#'
+#' @param backup_list list with the tables for backup
+#' @param resource_id character with the resource id to restore
+#'
+#' @return invisible TRUE if success, error if not
+#'
+#' @noRd
+restore_resource_from_backup <- function(backup_list, resource_id, con) {
+  list(
+    delete_resource_query = glue::glue_sql(
+      "DELETE FROM resources WHERE id = {resource_id};",
+      .con = con
+    ),
+    resources_upsert_query <- glue::glue_sql(
+      "INSERT INTO resources ({`columns`*}) VALUES ({values*})
+          ON CONFLICT (id) DO UPDATE SET {insert_resources_subquery*};",
+      columns = names(backup_list$resources_backup_table),
+      values = as.list(dplyr::slice(backup_list$resources_backup_table, 1)),
+      insert_resources_subquery = glue::glue_sql(
+        "{`names(backup_list$resources_backup_table)`} = {as.list(dplyr::slice(backup_list$resources_backup_table, 1))}",
+        .con = con
+      ),
+      .con = con
+    ),
+    insert_backup_tags = glue::glue_sql(
+      "INSERT INTO resource_tags (tag_id, id) VALUES {values*};",
+      values = glue::glue_sql(
+        "({backup_list$tags_backup_table$tag_id}, {backup_list$tags_backup_table$id})",
+        .con = con
+      ),
+      .con = con
+    ),
+    insert_backup_nodes = glue::glue_sql(
+      "INSERT INTO nodes (node, id) VALUES {values*};",
+      values = glue::glue_sql(
+        "({backup_list$nodes_backup_table$node}, {backup_list$nodes_backup_table$id})",
+        .con = con
+      ),
+      .con = con
+    ),
+    insert_backup_authors = glue::glue_sql(
+      "INSERT INTO resource_authors (author_id, id) VALUES {values*};",
+      values = glue::glue_sql(
+        "({backup_list$resource_authors_backup_table$author_id}, {backup_list$resource_authors_backup_table$id})",
+        .con = con
+      ),
+      .con = con
+    ),
+    insert_backup_requirements = glue::glue_sql(
+      "INSERT INTO requirements (requirement, id) VALUES {values*};",
+      values = glue::glue_sql(
+        "({backup_list$requirements_backup_table$requirement}, {backup_list$requirements_backup_table$id})",
+        .con = con
+      ),
+      .con = con
+    ),
+    insert_backup_links = glue::glue_sql(
+      "INSERT INTO links (id, url_pdf, url_doi, url_source, url_docs) VALUES {values*};",
+      values = glue::glue_sql(
+        "({backup_list$links_backup_table$id}, {backup_list$links_backup_table$url_pdf}, {backup_list$links_backup_table$url_doi}, {backup_list$links_backup_table$url_source}, {backup_list$links_backup_table$url_docs})",
+        .con = con
+      ),
+      .con = con
+    ),
+    insert_backup_commit = glue::glue_sql(
+      "INSERT INTO resources_last_commit (id, last_commit_hash) VALUES {values*};",
+      values = glue::glue_sql(
+        "({backup_list$links_backup_table$id}, {backup_list$commit_backup_table$last_commit_hash})",
+        .con = con
+      ),
+      .con = con
+    )
+  ) %>%
+    purrr::walk(
+      ~ DBI::dbExecute(con, .x)
+    )
 }
 
 #' Delete resource from db by id
