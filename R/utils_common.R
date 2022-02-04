@@ -151,19 +151,30 @@ update_resource_last_commit_db <- function(resource_id, .con) {
   return(invisible(TRUE))
 }
 
+# transform the excel file for external data
+external_data_transform <- function(external_data_file = 'ExternalDataSources.xlsx') {
+
+  original_table <-
+    readxl::read_xlsx(path = external_data_file, sheet = 1, .name_repair = 'universal')
+
+  original_table %>%
+    # remove those not external, or that dont have URL or DOI
+    dplyr::filter(
+      !(is.na(URLsource)) | !(is.na(DOI)) & Source != "CREAF"
+    )
+
+}
+
+
 # transform the excel file for external models
 external_models_transform <- function(external_models_file = 'ProcessBasedModelsDatabase.xlsx') {
 
-  original_table <- readxl::read_xlsx(
-    path = external_models_file,
-    sheet = 1, skip = 1, .name_repair = 'universal'
-  )
+  original_table <-
+    readxl::read_xlsx(path = external_models_file,sheet = 1, skip = 1, .name_repair = 'universal')
 
   original_table %>%
     # remove those without DOI or URL, as then we have nothing to offer
-    dplyr::filter(
-      !(is.na(URL)) | !(is.na(DOI)), External.catalog.entry == 'Y'
-    ) %>%
+    dplyr::filter(!(is.na(URL)) | !(is.na(DOI)), External.catalog.entry) %>%
     # create all necessary variables/metadata
     dplyr::mutate(
       # id & title
