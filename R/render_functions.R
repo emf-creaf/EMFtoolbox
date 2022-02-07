@@ -103,6 +103,12 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
   yaml_frontmatter <- ''
   md_content <- ''
 
+  # Check if dest exists, if not, not matter the commit, we need to create the page
+  if (!fs::dir_exists(dest)) {
+    usethis::ui_info("Creating {emf_type} folder at {dest}")
+    fs::dir_create(fs::path(dest))
+  }
+
   if (is_external(resource_metadata)) {
     ## external model/data
     dest <- fs::path(Sys.getenv('WEB_PATH'), 'content', glue::glue('external_{category}'), resource_id)
@@ -111,19 +117,17 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
       resource_id, .con = .con, .external = TRUE, .external_id = external_resource_id
     )
     yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = TRUE)
-    md_content <- md_content_generator(resource_metadata, .external = TRUE)
+    md_content <- md_content_generator(resource_metadata, dest, category, .external = TRUE)
   } else {
     ## no external
     should_be_updated <- create_from_emf_github(resource_id, .con = .con)
     yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = FALSE)
-    md_content <- md_content_generator(resource_metadata, .external = FALSE)
+    md_content <- md_content_generator(resource_metadata, dest, category, .external = FALSE)
   }
 
-  # Check if dest exists, if not, not matter the commit, we need to create the page
+  # Check if index.md exists, if not, not matter the commit, we need to create the page
   if (!fs::file_exists(fs::path(dest, 'index.md'))) {
-    usethis::ui_info("Creating {emf_type} folder at {dest}")
     should_be_updated <- TRUE
-    fs::dir_create(fs::path(dest))
   }
 
   # now in a folder call as the resource, it must be the static files we need to move to the web folder
@@ -455,8 +459,16 @@ frontmatter_generator <- function(resource_metadata, category, .external = FALSE
       tags = pq__text_to_vector_parser(resource_metadata$tag),
       draft = resource_metadata$emf_draft,
       featured = FALSE,
-      date = resource_metadata$date,
-      lastmod = resource_metadata$date_lastmod,
+      date = dplyr::if_else(
+        is_na_or_null(resource_metadata$date),
+        as.character(Sys.Date()),
+        as.character(resource_metadata$date)
+      ),
+      lastmod = dplyr::if_else(
+        is_na_or_null(resource_metadata$date_lastmod),
+        as.character(Sys.Date()),
+        as.character(resource_metadata$date_lastmod)
+      ),
       summary = resource_metadata$description,
       model_repository = resource_metadata$model_repository,
       data_repository = resource_metadata$data_repository,
@@ -479,7 +491,7 @@ frontmatter_generator <- function(resource_metadata, category, .external = FALSE
 
 }
 
-md_content_generator <- function(resource_metadata, .external = FALSE) {
+md_content_generator <- function(resource_metadata, dest, category, .external = FALSE) {
 
   # create the content from the metadata
   md_content <- c(
@@ -491,6 +503,15 @@ md_content_generator <- function(resource_metadata, .external = FALSE) {
   )
 
   if (!isTRUE(.external)) {
+    # copy intermediate images
+    usethis::ui_info("Copying the intermediate images needed:")
+    intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) %>%
+      purrr::walk(usethis::ui_todo)
+  } else {
+    # copy intermediate images
+    usethis::ui_info("Copying the intermediate images needed:")
+    intermediate_images <- copy_images(folder = '.', dest, category) %>%
+      purrr::walk(usethis::ui_todo)
 
   }
 

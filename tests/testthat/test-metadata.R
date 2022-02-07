@@ -12,6 +12,18 @@ test_that("use_metadata_yml works as expected", {
   expect_identical(fbb_yml$emf_type, 'workflow')
   expect_identical(fbb_yml$nodes, c('foo', 'bar', 'baz'))
   expect_identical(fbb_yml$links$url_doi, 'example.com')
+  expect_identical(fbb_yml$date, as.character(Sys.Date()))
+  expect_identical(fbb_yml$date_lastmod, as.character(Sys.Date()))
+
+  fbb_yml <- suppressMessages(
+    use_metadata_yml(emf_type = 'data', nodes = c('foo', 'bar', 'baz'), links = list(url_doi = 'example.com'))
+  )
+  expect_identical(core_yml$emf_type, '')
+  expect_identical(fbb_yml$emf_type, 'data')
+  expect_identical(fbb_yml$nodes, c('foo', 'bar', 'baz'))
+  expect_identical(fbb_yml$links$url_doi, 'example.com')
+  expect_identical(fbb_yml$date, as.character(Sys.Date()))
+  expect_identical(fbb_yml$date_lastmod, as.character(Sys.Date()))
 
 })
 
@@ -347,5 +359,47 @@ test_that("collecting external models works", {
   expect_s3_class((external_models_table <- external_models_transform()), 'tbl_df')
   expect_named(external_models_table, expected_names, ignore.order = TRUE)
   expect_s3_class(collect_metadata(.dry = TRUE, yml_file = external_models_table[1,]), 'yml')
+
+})
+
+test_that("collecting external data works", {
+
+  temp_proj <- emf_temp_folder()
+  withr::defer(fs::dir_delete(temp_proj))
+
+  # store the current project
+  old_project <- usethis::proj_get()
+
+  repository <- "emf_external_data"
+
+  # get the dir
+  dir <- fs::path(temp_proj, repository)
+  fs::dir_create(dir)
+  # create the dir, go to the folder and do whatever it needs, but always back again to the original one when
+  # finish (defer)
+  setwd(dir)
+  withr::defer(setwd(old_project))
+  # switch to new project
+  usethis::proj_set(dir, force = TRUE)
+  withr::defer(usethis::proj_set(old_project, force = TRUE))
+
+  # create the repo based on resource_id
+  usethis::create_from_github(
+    repo_spec = glue::glue("emf-creaf/{repository}"),
+    destdir = temp_proj,
+    fork = FALSE,
+    rstudio = FALSE,
+    open = FALSE
+  )
+
+  expected_names <- c(
+    "id", "title", "emf_type", "emf_public", "emf_automatized",
+    "emf_reproducible", "emf_draft", "emf_data_type", "data_repository", "tags",
+    "nodes", "authors", "requirements", "links", "description"
+  )
+
+  expect_s3_class((external_data_table <- external_data_transform()), 'tbl_df')
+  expect_named(external_data_table, expected_names, ignore.order = TRUE)
+  expect_s3_class(collect_metadata(.dry = TRUE, yml_file = external_data_table[1,]), 'yml')
 
 })

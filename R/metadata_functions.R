@@ -34,7 +34,7 @@ use_metadata_yml <- function(
 ) {
 
   # empty template
-  initial_state <- list('')
+  initial_state <- list()
 
   # update template if provided
   if (!is.null(.template)) {
@@ -46,6 +46,15 @@ use_metadata_yml <- function(
   metadata_yml <- initial_state %>%
     ymlthis::yml_replace(...) %>%
     suppressMessages(ymlthis::use_yml())
+
+  ## Ensure date is always set
+  if (metadata_yml$date == '') {
+    metadata_yml$date <- as.character(Sys.Date())
+  }
+
+  if (metadata_yml$date_lastmod == '') {
+    metadata_yml$date_lastmod <- as.character(Sys.Date())
+  }
 
   # if write is TRUE, write it and return it, if not, just return it
   if (isTRUE(.write)) {
@@ -219,22 +228,25 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
 #' collect_metadata_external_models(con = emf_database, .dry = TRUE)
 #'
 #' @export
-collect_metadata_external_models <- function(con = NULL, ..., .dry = TRUE) {
+collect_metadata_external <- function(external_type, con = NULL, ..., .dry = TRUE) {
   # load the original table and transform it
-  external_models_metadata <- external_models_transform(...)
+  external_metadata <- switch(
+    external_type,
+    "models" = external_models_transform(...),
+    "data" = external_data_transform(...)
+  )
 
-  # TODO find a way to iterate **safely** by rows calling collect_metadata. slider::slide does not accept
+  # Iterate **safely** by rows calling collect_metadata. slider::slide does not accept
   # safe versions of the function, so we are gonna use the ol'good map
-
   # create a safe version of collect_metadata
   safe_collect_metadata <- purrr::safely(collect_metadata)
 
   # safely loop the ext_models metadata rows
-  updated_external_models <-
-    1:nrow(external_models_metadata) %>%
-    purrr::map(~ safe_collect_metadata(con = con, .dry = .dry, yml_file = external_models_metadata[.x,]))
+  updated_external <-
+    1:nrow(external_metadata) %>%
+    purrr::map(~ safe_collect_metadata(con = con, .dry = .dry, yml_file = external_metadata[.x,]))
 
-  return(purrr::map(updated_external_models, 'result'))
+  return(purrr::map(updated_external, 'result'))
 
 }
 

@@ -160,7 +160,40 @@ external_data_transform <- function(external_data_file = 'ExternalDataSources.xl
   original_table %>%
     # remove those not external, or that dont have URL or DOI
     dplyr::filter(
-      !(is.na(URLsource)) | !(is.na(DOI)) & Source != "CREAF"
+      !(is.na(URLsource)) | !(is.na(DOI)), is.na(Source) | Source != "CREAF"
+    ) %>%
+    # create all necessary variables/metadata
+    dplyr::mutate(
+      # descr & title
+      description = Description,
+      title = DataSourceName,
+      # the necessary emf metadata
+      emf_type = 'data',
+      emf_public = TRUE,
+      emf_automatized = TRUE,
+      emf_reproducible = FALSE,
+      emf_draft = FALSE,
+      emf_data_type = 'external_data',
+      # get the url and create the metadata var.
+      # for that, we choose between url and doi, with preference for the URL
+      data_repository = dplyr::if_else(!is.na(URLsource), URLsource, DOI),
+      # tags, built from model type, level and code language
+      tags = purrr::pmap(
+        list(ThematicCategory, ThematicSubcategory),
+        .f = function(x,y) {return(c(x,y))}
+      ),
+      nodes = list(""),
+      authors = list(""),
+      requirements = list(""),
+      links = purrr::pmap(
+        list(DOI, URLsource),
+        .f = function(x,y) {return(list(url_doi = x, url_source = y))}
+      )
+    ) %>%
+    dplyr::select(
+      id, description, title, emf_type, emf_public, emf_automatized,
+      emf_reproducible, emf_draft, emf_data_type, data_repository, tags,
+      nodes, authors, requirements, links
     )
 
 }
@@ -275,8 +308,22 @@ rd_postprocessing <- function(rd_fragment, intermediate_images) {
 }
 
 nas_to_empty_strings <- function(x) {
-  if (length(x) == 1 && is.na(x)){
+  if (length(x) > 1) {
+    if (is.list(x)) {
+      return(purrr::map(x, nas_to_empty_strings))
+    } else {
+      return(purrr::map_chr(x, nas_to_empty_strings))
+    }
+
+  }
+
+  if (is_na_or_null(x)) {
     x <- ''
   }
+
   return(x)
+}
+
+is_na_or_null <- function(x) {
+  is.null(x) || is.na(x)
 }
