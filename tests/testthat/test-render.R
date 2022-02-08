@@ -1,5 +1,10 @@
 # renders tests
 
+withr::local_envvar(list(
+  EMF_DATABASE = "emf_metadata_dummy",
+  WEB_PATH = "/home/malditobarbudo/data/CREAF/projects/emf/emf_web/emf_hugo_theme_site_example"
+))
+
 # connecting to the database (and close it later)
 emf_database <- metadata_db_con()
 withr::defer(pool::poolClose(emf_database))

@@ -1,5 +1,10 @@
 # use_metadata_yml
 
+withr::local_envvar(list(
+  EMF_DATABASE = "emf_metadata_dummy",
+  WEB_PATH = "/home/malditobarbudo/data/CREAF/projects/emf/emf_web/emf_hugo_theme_site_example"
+))
+
 test_that("use_metadata_yml works as expected", {
   # class
   expect_s3_class(suppressMessages(use_metadata_yml()), 'yml')

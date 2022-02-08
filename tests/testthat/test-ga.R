@@ -1,4 +1,8 @@
 # use_emf_ga
+withr::local_envvar(list(
+  EMF_DATABASE = "emf_metadata_dummy",
+  WEB_PATH = "/home/malditobarbudo/data/CREAF/projects/emf/emf_web/emf_hugo_theme_site_example"
+))
 
 test_that("use_emf_ga works as intended", {
   # prepare a local project

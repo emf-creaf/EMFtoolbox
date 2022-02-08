@@ -6,41 +6,48 @@ library(DBI)
 library(RPostgres)
 library(glue)
 
+recreate_db <- function(prod = FALSE) {
 
-## Connect to the database
-conn <- DBI::dbConnect(
-  RPostgres::Postgres(),
-  host = Sys.getenv('EMF_DATABASE_HOST'),
-  user = Sys.getenv('EMF_DATABASE_USER'),
-  password = Sys.getenv('EMF_DATABASE_PASS')
-)
+  if (!prod) {
+    withr::local_envvar(list(
+      EMF_DATABASE = "emf_metadata_dummy"
+    ))
+  }
 
-##############################################################################################################
-## Delete the database (just in case)
-delete_db_query <- glue::glue_sql(
-  "DROP DATABASE emf_metadata_dummy;",
-  .con = conn
-)
-DBI::dbExecute(conn, delete_db_query)
-##############################################################################################################
+  ## Connect to the database
+  conn <- DBI::dbConnect(
+    RPostgres::Postgres(),
+    host = Sys.getenv('EMF_DATABASE_HOST'),
+    user = Sys.getenv('EMF_DATABASE_USER'),
+    password = Sys.getenv('EMF_DATABASE_PASS')
+  )
 
-## Create the database
-create_db_query <- glue::glue_sql(
-  "CREATE DATABASE emf_metadata_dummy;",
-  .con = conn
-)
-DBI::dbExecute(conn, create_db_query)
+  ##############################################################################################################
+  ## Delete the database (just in case)
+  delete_db_query <- glue::glue_sql(
+    "DROP DATABASE IF EXISTS {`Sys.getenv('EMF_DATABASE')`};",
+    .con = conn
+  )
+  DBI::dbExecute(conn, delete_db_query)
+  ##############################################################################################################
 
-## Disconnect and connect to the new database
-DBI::dbDisconnect(conn)
+  ## Create the database
+  create_db_query <- glue::glue_sql(
+    "CREATE DATABASE {`Sys.getenv('EMF_DATABASE')`};",
+    .con = conn
+  )
+  DBI::dbExecute(conn, create_db_query)
 
-emf_database <- EMFtoolbox:::metadata_db_con()
-withr::defer(pool::poolClose(emf_database))
+  ## Disconnect and connect to the new database
+  DBI::dbDisconnect(conn)
 
-## Create the empty tables
-create_queries_list <- list(
-  create_resources_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS resources(
+  emf_database <- EMFtoolbox:::metadata_db_con()
+  withr::defer(pool::poolClose(emf_database))
+
+  ## Create the empty tables
+  create_queries_list <- list(
+    create_resources_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS resources(
       id TEXT PRIMARY KEY,
       emf_type TEXT,
       emf_data_type TEXT,
@@ -58,11 +65,11 @@ create_queries_list <- list(
       model_repository TEXT,
       data_repository TEXT
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_nodes_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS nodes(
+    create_nodes_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS nodes(
       node_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       node TEXT,
       id TEXT,
@@ -71,11 +78,11 @@ create_queries_list <- list(
           REFERENCES resources(id)
           ON DELETE CASCADE
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_resource_authors_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS resource_authors(
+    create_resource_authors_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS resource_authors(
       resource_authors_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       author_id TEXT,
       id TEXT,
@@ -84,11 +91,11 @@ create_queries_list <- list(
           REFERENCES resources(id)
           ON DELETE CASCADE
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_authors_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS authors(
+    create_authors_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS authors(
       authors_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       author_id TEXT,
       name TEXT,
@@ -96,11 +103,11 @@ create_queries_list <- list(
       aff TEXT,
       aff_link TEXT
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_requirements_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS requirements(
+    create_requirements_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS requirements(
       requirement_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       requirement TEXT,
       id TEXT,
@@ -109,11 +116,11 @@ create_queries_list <- list(
           REFERENCES resources(id)
           ON DELETE CASCADE
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_resource_tags_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS resource_tags(
+    create_resource_tags_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS resource_tags(
       resource_tags_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       tag_id TEXT,
       id TEXT,
@@ -122,20 +129,20 @@ create_queries_list <- list(
           REFERENCES resources(id)
           ON DELETE CASCADE
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_tags_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS tags(
+    create_tags_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS tags(
       tags_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       tag_id TEXT,
       tag_description TEXT
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_links_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS links(
+    create_links_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS links(
       link_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       id TEXT,
       url_pdf TEXT,
@@ -147,22 +154,22 @@ create_queries_list <- list(
           REFERENCES resources(id)
           ON DELETE CASCADE
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_metadata_definitions_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS metadata_definitions(
+    create_metadata_definitions_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS metadata_definitions(
       field_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       field TEXT,
       scopes TEXT,
       categories TEXT,
       definition TEXT
     );",
-    .con = emf_database
-  ),
+      .con = emf_database
+    ),
 
-  create_resources_last_commit_query = glue::glue_sql(
-    "CREATE TABLE IF NOT EXISTS resources_last_commit(
+    create_resources_last_commit_query = glue::glue_sql(
+      "CREATE TABLE IF NOT EXISTS resources_last_commit(
       hash_pk INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       last_commit_hash TEXT,
       id TEXT,
@@ -171,58 +178,58 @@ create_queries_list <- list(
           REFERENCES resources(id)
           ON DELETE CASCADE
     );",
-    .con = emf_database
+      .con = emf_database
+    )
   )
-)
 
-## Create the indexes
-indexes_queries_list <- list(
-  resources_core_index = glue::glue_sql(
-    "CREATE INDEX IF NOT EXISTS resources_core_index ON resources(emf_type, emf_public, emf_automatized, emf_reproducible, emf_draft);"
-  ),
-  resources_type_index = glue::glue_sql(
-    "CREATE INDEX IF NOT EXISTS resources_type_index ON resources(emf_type);"
-  ),
-  resources_public_index = glue::glue_sql(
-    "CREATE INDEX IF NOT EXISTS resources_public_index ON resources(emf_public);"
-  ),
-  resources_automatized_index = glue::glue_sql(
-    "CREATE INDEX IF NOT EXISTS resources_automatized_index ON resources(emf_automatized);"
-  ),
-  resources_reproducible_index = glue::glue_sql(
-    "CREATE INDEX IF NOT EXISTS resources_reproducible_index ON resources(emf_reproducible);"
-  ),
-  nodes_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS node_index ON nodes(id);"
-  ),
-  authors_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS author_index ON authors(author_id);"
-  ),
-  resource_authors_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS resource_authors_index ON resource_authors(author_id, id);"
-  ),
-  requirements_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS requirement_index ON requirements(id);"
-  ),
-  tags_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS tag_index ON tags(tag_id);"
-  ),
-  resource_tags_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS resource_tags_index ON resource_tags(tag_id, id);"
-  ),
-  links_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS link_index ON links(id);"
-  ),
-  last_commit_index = glue::glue(
-    "CREATE INDEX IF NOT EXISTS last_commit_index ON resources_last_commit(id);"
+  ## Create the indexes
+  indexes_queries_list <- list(
+    resources_core_index = glue::glue_sql(
+      "CREATE INDEX IF NOT EXISTS resources_core_index ON resources(emf_type, emf_public, emf_automatized, emf_reproducible, emf_draft);"
+    ),
+    resources_type_index = glue::glue_sql(
+      "CREATE INDEX IF NOT EXISTS resources_type_index ON resources(emf_type);"
+    ),
+    resources_public_index = glue::glue_sql(
+      "CREATE INDEX IF NOT EXISTS resources_public_index ON resources(emf_public);"
+    ),
+    resources_automatized_index = glue::glue_sql(
+      "CREATE INDEX IF NOT EXISTS resources_automatized_index ON resources(emf_automatized);"
+    ),
+    resources_reproducible_index = glue::glue_sql(
+      "CREATE INDEX IF NOT EXISTS resources_reproducible_index ON resources(emf_reproducible);"
+    ),
+    nodes_index = glue::glue(
+      "CREATE INDEX IF NOT EXISTS node_index ON nodes(id);"
+    ),
+    authors_index = glue::glue(
+      "CREATE INDEX IF NOT EXISTS author_index ON authors(author_id);"
+    ),
+    resource_authors_index = glue::glue(
+      "CREATE INDEX IF NOT EXISTS resource_authors_index ON resource_authors(author_id, id);"
+    ),
+    requirements_index = glue::glue(
+      "CREATE INDEX IF NOT EXISTS requirement_index ON requirements(id);"
+    ),
+    tags_index = glue::glue(
+      "CREATE INDEX IF NOT EXISTS tag_index ON tags(tag_id);"
+    ),
+    resource_tags_index = glue::glue(
+      "CREATE INDEX IF NOT EXISTS resource_tags_index ON resource_tags(tag_id, id);"
+    ),
+    links_index = glue::glue(
+      "CREATE INDEX IF NOT EXISTS link_index ON links(id);"
+    ),
+    last_commit_index = glue::glue(
+      "CREATE INDEX IF NOT EXISTS last_commit_index ON resources_last_commit(id);"
+    )
   )
-)
 
-## Create the Views
+  ## Create the Views
 
-# common code
-common_view_code <- glue::glue_sql(
-  "resources.title,
+  # common code
+  common_view_code <- glue::glue_sql(
+    "resources.title,
   resources.thematic,
   resources.date,
   resources.date_lastmod,
@@ -265,81 +272,85 @@ FROM resources
   LEFT JOIN (
       SELECT id, url_doi, url_pdf, url_source, url_docs FROM links
       ) links USING (id)",
-  .con = emf_database
-)
-# views
-create_views_list <- list(
-  public_workflows = glue::glue_sql(
-    "CREATE OR REPLACE VIEW public_workflows AS
+    .con = emf_database
+  )
+  # views
+  create_views_list <- list(
+    public_workflows = glue::glue_sql(
+      "CREATE OR REPLACE VIEW public_workflows AS
       SELECT resources.id AS workflow,
       {common_view_code}
       WHERE resources.emf_type = 'workflow';
     ",
-    .con = emf_database
-  ),
-  public_tech_docs = glue::glue_sql(
-    "CREATE OR REPLACE VIEW public_tech_docs AS
+      .con = emf_database
+    ),
+    public_tech_docs = glue::glue_sql(
+      "CREATE OR REPLACE VIEW public_tech_docs AS
       SELECT resources.id AS tech_doc,
     {common_view_code}
       WHERE resources.emf_type = 'tech_doc';
     ",
-    .con = emf_database
-  ),
-  public_models = glue::glue_sql(
-    "CREATE OR REPLACE VIEW public_models AS
+      .con = emf_database
+    ),
+    public_models = glue::glue_sql(
+      "CREATE OR REPLACE VIEW public_models AS
       SELECT resources.id AS model,
     {common_view_code}
       WHERE resources.emf_type = 'model';
     ",
-    .con = emf_database
-  ),
-  public_data = glue::glue_sql(
-    "CREATE OR REPLACE VIEW public_data AS
+      .con = emf_database
+    ),
+    public_data = glue::glue_sql(
+      "CREATE OR REPLACE VIEW public_data AS
       SELECT resources.id AS data,
     {common_view_code}
       WHERE resources.emf_type = 'data';
     ",
-    .con = emf_database
-  ),
-  public_softworks = glue::glue_sql(
-    "CREATE OR REPLACE VIEW public_softworks AS
+      .con = emf_database
+    ),
+    public_softworks = glue::glue_sql(
+      "CREATE OR REPLACE VIEW public_softworks AS
       SELECT resources.id AS softwork,
     {common_view_code}
       WHERE resources.emf_type = 'softwork';
     ",
-    .con = emf_database
-  )
-)
-
-## Execute the queries
-create_queries_list %>%
-  purrr::walk(
-    ~ DBI::dbExecute(emf_database, .x)
+      .con = emf_database
+    )
   )
 
-indexes_queries_list %>%
-  purrr::walk(
-    ~ DBI::dbExecute(emf_database, .x)
+  ## Execute the queries
+  create_queries_list %>%
+    purrr::walk(
+      ~ DBI::dbExecute(emf_database, .x)
+    )
+
+  indexes_queries_list %>%
+    purrr::walk(
+      ~ DBI::dbExecute(emf_database, .x)
+    )
+
+  create_views_list %>%
+    purrr::walk(
+      ~ DBI::dbExecute(emf_database, .x)
+    )
+
+  ## Updating definitions table
+  metadata_definitions <- readxl::read_excel('data-raw/metadata_table.xlsx') %>%
+    dplyr::select(-`Allowed values`, -`Example value`) %>%
+    dplyr::rename(
+      field = Field,
+      scopes = Scopes,
+      categories = Categories,
+      definition = Definition
+    )
+
+  DBI::dbAppendTable(
+    emf_database,
+    'metadata_definitions', metadata_definitions
   )
+}
 
-create_views_list %>%
-  purrr::walk(
-    ~ DBI::dbExecute(emf_database, .x)
-  )
-
-## Updating definitions table
-metadata_definitions <- readxl::read_excel('data-raw/metadata_table.xlsx') %>%
-  dplyr::select(-`Allowed values`, -`Example value`) %>%
-  dplyr::rename(
-    field = Field,
-    scopes = Scopes,
-    categories = Categories,
-    definition = Definition
-  )
-
-DBI::dbAppendTable(
-  emf_database,
-  'metadata_definitions', metadata_definitions
-)
-
-withr::deferred_run()
+# recreate dummy
+recreate_db()
+# recreate production
+recreate_db(prod = TRUE)
