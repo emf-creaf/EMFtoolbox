@@ -103,15 +103,14 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
   yaml_frontmatter <- ''
   md_content <- ''
 
-  # Check if dest exists, if not, not matter the commit, we need to create the page
-  if (!fs::dir_exists(dest)) {
-    usethis::ui_info("Creating {emf_type} folder at {dest}")
-    fs::dir_create(fs::path(dest))
-  }
-
   if (is_external(resource_metadata)) {
     ## external model/data
     dest <- fs::path(Sys.getenv('WEB_PATH'), 'content', glue::glue('external_{category}'), resource_id)
+    # Check if dest exists, if not, not matter the commit, we need to create the page
+    if (!fs::dir_exists(dest)) {
+      usethis::ui_info("Creating {emf_type} folder at {dest}")
+      fs::dir_create(fs::path(dest))
+    }
     external_resource_id <- glue::glue("emf_external_{category}")
     should_be_updated <- create_from_emf_github(
       resource_id, .con = .con, .external = TRUE, .external_id = external_resource_id
@@ -119,6 +118,11 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
     yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = TRUE)
     md_content <- md_content_generator(resource_metadata, dest, category, .external = TRUE)
   } else {
+    # Check if dest exists, if not, not matter the commit, we need to create the page
+    if (!fs::dir_exists(dest)) {
+      usethis::ui_info("Creating {emf_type} folder at {dest}")
+      fs::dir_create(fs::path(dest))
+    }
     ## no external
     should_be_updated <- create_from_emf_github(resource_id, .con = .con)
     yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = FALSE)
