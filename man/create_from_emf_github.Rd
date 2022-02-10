@@ -9,7 +9,8 @@ create_from_emf_github(
   .envir = parent.frame(),
   .con = NULL,
   .external = FALSE,
-  .external_id
+  .external_id,
+  .default_git = "emf-creaf"
 )
 }
 \arguments{

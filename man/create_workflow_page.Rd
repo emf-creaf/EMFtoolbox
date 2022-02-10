@@ -9,7 +9,8 @@ create_workflow_page(
   dest = fs::path(Sys.getenv("WEB_PATH"), "content", "workflows", resource_id),
   .con = NULL,
   .render_quiet = TRUE,
-  .force = FALSE
+  .force = FALSE,
+  ...
 )
 }
 \arguments{

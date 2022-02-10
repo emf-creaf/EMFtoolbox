@@ -73,7 +73,8 @@ equal_lines_utf8 <- function(lines, path) {
 #' @param .external_id if .external is TRUE, the id of the external data/models repository
 
 create_from_emf_github <- function(
-  resource_id, .envir = parent.frame(), .con = NULL, .external = FALSE, .external_id
+  resource_id, .envir = parent.frame(),
+  .con = NULL, .external = FALSE, .external_id, .default_git = "emf-creaf"
 ) {
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
@@ -99,7 +100,7 @@ create_from_emf_github <- function(
 
   # create the repo based on resource_id
   usethis::create_from_github(
-    repo_spec = glue::glue("emf-creaf/{repository}"),
+    repo_spec = glue::glue("{.default_git}/{repository}"),
     destdir = temp_proj,
     fork = FALSE,
     rstudio = FALSE,

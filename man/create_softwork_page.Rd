@@ -10,7 +10,8 @@ create_softwork_page(
   .con = NULL,
   .render_quiet = TRUE,
   .force = FALSE,
-  .input = "README.Rmd"
+  .input = "README.Rmd",
+  ...
 )
 }
 \arguments{

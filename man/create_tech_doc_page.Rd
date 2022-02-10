@@ -9,7 +9,8 @@ create_tech_doc_page(
   dest = fs::path(Sys.getenv("WEB_PATH"), "content", "tech_docs", resource_id),
   .con = NULL,
   .render_quiet = TRUE,
-  .force = FALSE
+  .force = FALSE,
+  ...
 )
 }
 \arguments{

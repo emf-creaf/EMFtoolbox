@@ -11,7 +11,8 @@ render_rd_fragment(
   .render_quiet = TRUE,
   .force = FALSE,
   .con = NULL,
-  .input = NULL
+  .input = NULL,
+  ...
 )
 }
 \arguments{

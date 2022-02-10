@@ -17,7 +17,7 @@
 #'
 #' @export
 render_rd_fragment <- function(
-  resource_id, dest, category, .render_quiet = TRUE, .force = FALSE, .con = NULL, .input = NULL
+  resource_id, dest, category, .render_quiet = TRUE, .force = FALSE, .con = NULL, .input = NULL, ...
 ) {
 
   if (is.null(.input)) {
@@ -25,7 +25,7 @@ render_rd_fragment <- function(
   }
 
   # clone the repository in a temporal folder that will be cleaned afterwards
-  should_be_updated <- create_from_emf_github(resource_id, .con = .con)
+  should_be_updated <- create_from_emf_github(resource_id, .con = .con, ...)
 
   # if file does not exists, it doesn't matter if should be updated or not
   if (!fs::file_exists(.input)) {
@@ -64,7 +64,7 @@ render_rd_fragment <- function(
   return(rd_fragment)
 }
 
-create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force) {
+create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force, ...) {
 
   # connect to database if needed
   if (is.null(.con)) {
@@ -113,7 +113,8 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
     }
     external_resource_id <- glue::glue("emf_external_{category}")
     should_be_updated <- create_from_emf_github(
-      resource_id, .con = .con, .external = TRUE, .external_id = external_resource_id
+      resource_id, .con = .con, .external = TRUE,
+      .external_id = external_resource_id, ...
     )
     yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = TRUE)
     md_content <- md_content_generator(resource_metadata, dest, category, .external = TRUE)
@@ -124,7 +125,7 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
       fs::dir_create(fs::path(dest))
     }
     ## no external
-    should_be_updated <- create_from_emf_github(resource_id, .con = .con)
+    should_be_updated <- create_from_emf_github(resource_id, .con = .con, ...)
     yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = FALSE)
     md_content <- md_content_generator(resource_metadata, dest, category, .external = FALSE)
   }
@@ -155,7 +156,7 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
 
 }
 
-create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force, .input) {
+create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .force, .input, ...) {
 
   # connect to database if needed
   if (is.null(.con)) {
@@ -199,7 +200,7 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
     .force <- TRUE
   }
 
-  fragment <- render_rd_fragment(resource_id, dest, category, .force = .force, .con = .con, .input = .input)
+  fragment <- render_rd_fragment(resource_id, dest, category, .force = .force, .con = .con, .input = .input, ...)
 
   # Check if the workflow page must be updated by the last commit.
   # If there is a new commit, we start the process but check later if the fragment is different or not.
@@ -245,9 +246,9 @@ create_rmd_page <- function(emf_type, resource_id, dest, .con, .render_quiet, .f
 create_workflow_page <- function(
   resource_id,
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'workflows', resource_id),
-  .con = NULL, .render_quiet = TRUE, .force = FALSE
+  .con = NULL, .render_quiet = TRUE, .force = FALSE, ...
 ) {
-  create_rmd_page('workflow', resource_id, dest, .con, .render_quiet, .force, .input = NULL)
+  create_rmd_page('workflow', resource_id, dest, .con, .render_quiet, .force, .input = NULL, ...)
 }
 
 #' Render pkgdown for softworks
@@ -268,9 +269,9 @@ create_workflow_page <- function(
 create_softwork_page <- function(
   resource_id,
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'software', resource_id),
-  .con = NULL, .render_quiet = TRUE, .force = FALSE, .input = 'README.Rmd'
+  .con = NULL, .render_quiet = TRUE, .force = FALSE, .input = 'README.Rmd', ...
 ) {
-  create_rmd_page('softwork', resource_id, dest, .con, .render_quiet, .force, .input)
+  create_rmd_page('softwork', resource_id, dest, .con, .render_quiet, .force, .input, ...)
 }
 
 #' Create a technical document page in the web project
@@ -290,9 +291,9 @@ create_softwork_page <- function(
 create_tech_doc_page <- function(
   resource_id,
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'tech_docs', resource_id),
-  .con = NULL, .render_quiet = TRUE, .force = FALSE
+  .con = NULL, .render_quiet = TRUE, .force = FALSE, ...
 ) {
-  create_rmd_page('tech_doc', resource_id, dest, .con, .render_quiet, .force, .input = NULL)
+  create_rmd_page('tech_doc', resource_id, dest, .con, .render_quiet, .force, .input = NULL, ...)
 }
 
 #' Create a tmodel page in the web project
@@ -316,9 +317,9 @@ create_tech_doc_page <- function(
 create_model_page <- function(
   resource_id,
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'models', resource_id),
-  .con = NULL, .render_quiet = TRUE, .force = FALSE
+  .con = NULL, .render_quiet = TRUE, .force = FALSE, ...
 ) {
-  create_metadata_page('model', resource_id, dest, .con, .render_quiet, .force)
+  create_metadata_page('model', resource_id, dest, .con, .render_quiet, .force, ...)
 }
 
 #' Create a data page in the web project
@@ -342,9 +343,9 @@ create_model_page <- function(
 create_data_page <- function(
   resource_id,
   dest = fs::path(Sys.getenv('WEB_PATH'), 'content', 'data', resource_id),
-  .con = NULL, .render_quiet = TRUE, .force = FALSE
+  .con = NULL, .render_quiet = TRUE, .force = FALSE, ...
 ) {
-  create_metadata_page('data', resource_id, dest, .con, .render_quiet, .force)
+  create_metadata_page('data', resource_id, dest, .con, .render_quiet, .force, ...)
 }
 
 #' Update pages for resources
