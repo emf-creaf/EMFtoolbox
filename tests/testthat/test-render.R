@@ -164,17 +164,17 @@ test_that("create_model_page works as expected", {
 test_that("create_data_page works as expected", {
   # paths
   local_web <- local_temp_proj()
-  md_path <- fs::path(local_web, 'content', 'data', 'test_dummy_data', 'index.md')
+  md_path <- fs::path(local_web, 'content', 'data', 'sapfluxnet', 'index.md')
   # set local envvars and remove them later
   withr::local_envvar(list(WEB_PATH = local_web))
 
   expect_true(
-    create_data_page('test_dummy_data', .con = emf_database)
+    create_data_page('sapfluxnet', .con = emf_database)
   )
   expect_true(fs::file_exists(md_path))
   expect_true(any(
     (file_lines <- readLines(md_path, encoding = "UTF-8", warn = FALSE)) ==
-      'title: Test dummy data'
+      'title: SAPFLUXNET'
   ))
   expect_true(any(stringr::str_detect(file_lines, "## Description")))
   expect_error(
@@ -182,18 +182,18 @@ test_that("create_data_page works as expected", {
     "not found in public data table"
   )
   expect_false(
-    create_data_page('test_dummy_data', .con = emf_database)
+    create_data_page('sapfluxnet', .con = emf_database)
   )
   expect_message(
-    (forced_update <- create_data_page('test_dummy_data', .con = emf_database, .force = TRUE)),
+    (forced_update <- create_data_page('sapfluxnet', .con = emf_database, .force = TRUE)),
     "ommiting writting step"
   )
   expect_true(forced_update)
   frontmatter <- rmarkdown::yaml_front_matter(md_path)
-  expect_identical(frontmatter$title, 'Test dummy data')
+  expect_identical(frontmatter$title, 'SAPFLUXNET')
   expect_type(frontmatter$links, 'list')
   expect_named(frontmatter$links, c('url_doi', 'url_pdf', 'url_source', 'url_docs'))
-  expect_identical(frontmatter$links$url_doi, "example.com")
+  expect_identical(frontmatter$links$url_docs, "http://sapfluxnet.creaf.cat/")
   expect_true(frontmatter$date != '')
   expect_true(frontmatter$lastmod != '')
 })

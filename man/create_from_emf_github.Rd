@@ -9,7 +9,7 @@ create_from_emf_github(
   .envir = parent.frame(),
   .con = NULL,
   .external = FALSE,
-  .external_id,
+  .repository = resource_id,
   .default_git = "emf-creaf"
 )
 }
@@ -22,7 +22,7 @@ create_from_emf_github(
 
 \item{.external}{is the resource external}
 
-\item{.external_id}{if .external is TRUE, the id of the external data/models repository}
+\item{.repository}{if .external is TRUE, the id of the external data/models repository}
 }
 \description{
 Temporal cloned repository to work with the resource (render...)

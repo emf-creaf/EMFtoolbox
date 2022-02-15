@@ -250,6 +250,35 @@ collect_metadata_external <- function(external_type, con = NULL, ..., .dry = TRU
 
 }
 
+#' Collect metadata for creaf data and models resources
+#'
+#' Collect metadata for creaf data and models resources
+#'
+#' This function will collect the metadatas present in the selected folder.
+#'
+#' @param ... arguments passed to \code{\link{collect_metadata}}
+#'
+#' @return Invisible TRUE if update is needed and performed correctly, invisible FALSE if update is not needed
+#'   and process is performed correctly. Metadata \code{yml} object if \code{.dry} i TRUE. Error if the update
+#'   failed and there is a mismatch between the updated db tables and the metadata file.
+#'
+#' @examples
+#' collect_metadata_creaf(con = emf_database, .dry = TRUE)
+#'
+#' @export
+collect_metadata_creaf <- function(con = NULL, .dry = TRUE) {
+  # Iterate **safely** by rows calling collect_metadata. slider::slide does not accept
+  # safe versions of the function, so we are gonna use the ol'good map
+  # create a safe version of collect_metadata
+  safe_collect_metadata <- purrr::safely(collect_metadata)
+
+  # safely loop the folders in the respository
+  updated_creaf <- fs::dir_ls(recurse = TRUE, regexp = "metadata\\.yml$") %>%
+    purrr::map(~ safe_collect_metadata(con = con, yml_file = .x, .dry = .dry))
+
+  return(purrr::map(updated_creaf, 'result'))
+}
+
 
 # Read the metadata.yml file in the project.
 read_metadata_file <- function(yml_file = './metadata.yml') {

@@ -2,6 +2,7 @@
 
 export("%>%")
 export(collect_metadata)
+export(collect_metadata_creaf)
 export(collect_metadata_external)
 export(create_data_page)
 export(create_model_page)

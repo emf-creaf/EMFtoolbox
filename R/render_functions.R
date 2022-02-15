@@ -114,7 +114,7 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
     external_resource_id <- glue::glue("emf_external_{category}")
     should_be_updated <- create_from_emf_github(
       resource_id, .con = .con, .external = TRUE,
-      .external_id = external_resource_id, ...
+      .repository = external_resource_id, ...
     )
     yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = TRUE)
     md_content <- md_content_generator(resource_metadata, dest, category, .external = TRUE)
@@ -124,8 +124,18 @@ create_metadata_page <- function(emf_type, resource_id, dest, .con, .render_quie
       usethis::ui_info("Creating {emf_type} folder at {dest}")
       fs::dir_create(fs::path(dest))
     }
+    # repository for data or models
+    .repository <- switch(
+      emf_type,
+      'workflow' = resource_id,
+      'tech_doc' = resource_id,
+      'model' = "emf_creaf_models",
+      'data' = "emf_creaf_data",
+      'softwork' = resource_id
+    )
+
     ## no external
-    should_be_updated <- create_from_emf_github(resource_id, .con = .con, ...)
+    should_be_updated <- create_from_emf_github(resource_id, .con = .con, .repository = .repository, ...)
     yaml_frontmatter <- frontmatter_generator(resource_metadata, category, .external = FALSE)
     md_content <- md_content_generator(resource_metadata, dest, category, .external = FALSE)
   }

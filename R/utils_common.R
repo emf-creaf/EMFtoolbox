@@ -70,11 +70,11 @@ equal_lines_utf8 <- function(lines, path) {
 #' @param .envir envir for \code{withr::defer}, default to \code{parent.frame()}
 #' @param .con connection to the db
 #' @param .external is the resource external
-#' @param .external_id if .external is TRUE, the id of the external data/models repository
+#' @param .repository if .external is TRUE, the id of the external data/models repository
 
 create_from_emf_github <- function(
   resource_id, .envir = parent.frame(),
-  .con = NULL, .external = FALSE, .external_id, .default_git = "emf-creaf"
+  .con = NULL, .external = FALSE, .repository = resource_id, .default_git = "emf-creaf"
 ) {
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
@@ -82,13 +82,12 @@ create_from_emf_github <- function(
   # store the current project
   old_project <- usethis::proj_get()
 
-  repository <- resource_id
-  if (isTRUE(.external)) {
-    repository <- .external_id
-  }
+  # if (isTRUE(.external) || resource_id != .repository) {
+  #   repository <- .repository
+  # }
 
   # get the dir
-  dir <- fs::path(temp_proj, repository)
+  dir <- fs::path(temp_proj, .repository)
   fs::dir_create(dir)
   # create the dir, go to the folder and do whatever it needs, but always back again to the original one when
   # finish (defer)
@@ -100,7 +99,7 @@ create_from_emf_github <- function(
 
   # create the repo based on resource_id
   usethis::create_from_github(
-    repo_spec = glue::glue("{.default_git}/{repository}"),
+    repo_spec = glue::glue("{.default_git}/{.repository}"),
     destdir = temp_proj,
     fork = FALSE,
     rstudio = FALSE,
