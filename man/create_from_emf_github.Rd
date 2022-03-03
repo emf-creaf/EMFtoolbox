@@ -10,7 +10,8 @@ create_from_emf_github(
   .con = NULL,
   .external = FALSE,
   .repository = resource_id,
-  .default_git = "emf-creaf"
+  .default_git = "emf-creaf",
+  .update_commit_db = TRUE
 )
 }
 \arguments{

@@ -74,7 +74,9 @@ equal_lines_utf8 <- function(lines, path) {
 
 create_from_emf_github <- function(
   resource_id, .envir = parent.frame(),
-  .con = NULL, .external = FALSE, .repository = resource_id, .default_git = "emf-creaf"
+  .con = NULL, .external = FALSE,
+  .repository = resource_id, .default_git = "emf-creaf",
+  .update_commit_db = TRUE
 ) {
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
@@ -109,14 +111,19 @@ create_from_emf_github <- function(
   # last step, check the database for last commit hash, and if is equal return invisible FALSE,
   # but if not, update the db with the last commit hash
   # connect to database if needed
-  if (is.null(.con)) {
-    usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
-    .con <- metadata_db_con()
-    # close the connection when the function exits
-    withr::defer(pool::poolClose(.con))
+  if (.update_commit_db) {
+    # connect to database
+    if (is.null(.con)) {
+      usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
+      .con <- metadata_db_con()
+      # close the connection when the function exits
+      withr::defer(pool::poolClose(.con))
+    }
+    # update last commit
+    return(update_resource_last_commit_db(resource_id, .con))
   }
 
-  return(update_resource_last_commit_db(resource_id, .con))
+  return(invisible(dir))
 
 }
 
