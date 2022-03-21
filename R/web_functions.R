@@ -10,7 +10,7 @@ create_web_backup <- function(path, .envir = parent.frame()) {
   fs::dir_copy(path, backup_folder)
 
   # return the temp folder path to use it later if needed
-  return(backup_folder)
+  return(fs::path(fs::dir_ls(backup_folder)))
 }
 
 check_hugo_build <- function(content, public) {
@@ -135,13 +135,12 @@ send_error_email <- function(email_content = NULL, subject_field = "") {
   return(invisible(TRUE))
 }
 
-copy_web <- function(origin, dest) {
+copy_web <- function(origin = Sys.getenv("WEB_PATH_ORIGIN"), dest = Sys.getenv("WEB_PATH_DEST")) {
   # we need to copy the public folder from hugo build to the web server folder,
   # but first we need to remove the old one.
   # Also, all of this with a backup in a temp folder in case anything goes
   # wrong being able to restore the previous one.
   # Finally, if something goes wrong, send an email.
-  browser()
 
   # create a backup from the destination
   backup_old_web <- create_web_backup(dest)
@@ -153,39 +152,40 @@ copy_web <- function(origin, dest) {
   fs::dir_copy(origin, dest, TRUE)
 
   # now check that origin and dest now are the same
-  identical_check <- identical(
-    fs::dir_ls(dest, recurse = TRUE),
-    fs::dir_ls(origin, recurse = TRUE)
-  )
-  # if is not the same, restore backup
-  if (!identical_check) {
-    fs::dir_delete(dest)
-    fs::dir_copy(backup_old_web, dest, TRUE)
-    send_error_email(
-      list(
-        explanation_text = "Something went wrong copying the new web to the destination folder",
-        destination = dest,
-        origin = origin
-      ),
-      subject_field = "EMF web: Updated web was not copied to web server"
-    )
-    return(invisible(FALSE))
-  }
+  origin_folder_info <- fs::dir_info(fs::path_rel(origin, origin), recurse = TRUE) %>%
+    dplyr::select(-access_time)
+  dest_folder_info <- fs::dir_info(fs::path_rel(dest, dest), recurse = TRUE) %>%
+    dplyr::select(-access_time)
+
+  identical_check <- identical(origin_folder_info, dest_folder_info)
 
   # now we'll check if conectivity in the new web is correct
-  conectivity_check <- check_web_conectivity()
+  connectivity_check <- check_web_conectivity()
 
-  if (!conectivity_check) {
+  # if is not the same or there is connectivity issues, restore backup
+  if (any(!connectivity_check, !identical_check)) {
+
+    # prepare the explanation text for the email
+    explanation_text <- ''
+    if (!identical_check) {
+      explanation_text <-
+        glue::glue("{explanation_text} - Something went wrong copying the new web to the destination folder")
+    }
+    if (!connectivity_check) {
+      explanation_text <-
+        glue::glue("{explanation_text} - Updated web fails connectivity test")
+    }
+
     # if no conectivity, restore backup
     fs::dir_delete(dest)
     fs::dir_copy(backup_old_web, dest, TRUE)
     send_error_email(
       list(
-        explanation_text = "Updated web fails connectivity test",
+        explanation_text = explanation_text,
         destination = dest,
         origin = origin
       ),
-      subject_field = "EMF web: Updated web is not reachable"
+      subject_field = "EMF web: Update went wrong"
     )
     return(invisible(FALSE))
   }
@@ -226,8 +226,6 @@ check_web_conectivity <- function() {
 #' @export
 update_emf_web <- function(dest) {
 
-  browser()
-
   # clone the web repo
   create_from_emf_github('emf_web', .update_commit_db = FALSE)
 
@@ -238,7 +236,7 @@ update_emf_web <- function(dest) {
   build_check <- check_hugo_build(content = 'content', public = 'public')
   # if the build fails, stop
   if (!build_check) {
-    usethis::ui_stop("EMF web build failed")
+    usethis::ui_warn("EMF web built with errors")
   }
 
   # copy the web, and if there is an error, stop
