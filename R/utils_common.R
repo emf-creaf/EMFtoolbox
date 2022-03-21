@@ -213,6 +213,8 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
     readxl::read_xlsx(path = external_models_file,sheet = 1, skip = 1, .name_repair = 'universal')
 
   original_table %>%
+    # ensure external catalog entry is logical
+    dplyr::mutate(External.catalog.entry = as.logical(External.catalog.entry)) %>%
     # remove those without DOI or URL, as then we have nothing to offer
     dplyr::filter(!(is.na(URL)) | !(is.na(DOI)), External.catalog.entry) %>%
     # create all necessary variables/metadata
