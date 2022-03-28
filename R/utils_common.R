@@ -109,7 +109,7 @@ create_from_emf_github <- function(
   #   - If the user wasn't in a rstudio project, then the wd and the active_usethis_proj will
   #     be the same, but the active_rstudio_proj will be NULL
   # in debug mode, see the active_*_proj with usethis::proj_sitrep()
-  withr::defer(usethis::proj_set(old_project), envir = .envir)
+  withr::defer(usethis::proj_set(old_project, force = TRUE), envir = .envir)
 
 
   # last step, check the database for last commit hash, and if is equal return invisible FALSE,
