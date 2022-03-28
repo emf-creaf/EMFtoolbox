@@ -81,23 +81,12 @@ create_from_emf_github <- function(
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
 
-  # store the current project
-  old_project <- usethis::proj_get()
-
-  # if (isTRUE(.external) || resource_id != .repository) {
-  #   repository <- .repository
-  # }
-
-  # get the dir
-  dir <- fs::path(temp_proj, .repository)
-  fs::dir_create(dir)
-  # create the dir, go to the folder and do whatever it needs, but always back again to the original one when
-  # finish (defer)
-  setwd(dir)
-  withr::defer(setwd(old_project), envir = .envir)
-  # switch to new project
-  usethis::proj_set(dir, force = TRUE)
-  withr::defer(usethis::proj_set(old_project, force = TRUE), envir = .envir)
+  # store the current project (if any)
+  this_is_a_project <- !is.null(usethis::proj_sitrep()[["active_rstudio_proj"]])
+  old_project <- getwd()
+  if (this_is_a_project) {
+    old_project <- usethis::proj_get()
+  }
 
   # create the repo based on resource_id
   usethis::create_from_github(
@@ -107,6 +96,21 @@ create_from_emf_github <- function(
     rstudio = FALSE,
     open = FALSE
   )
+
+  # go to the cloned folder and do whatever it needs, but always back
+  # again to the original one when finish (defer)
+  dir <- fs::path(temp_proj, .repository)
+  setwd(dir)
+  usethis::proj_set(dir, force = TRUE)
+  withr::defer(setwd(old_project), envir = .envir)
+  # this will set the active_usethis_proj to the same as the working directory
+  #   - If the user was already in a project, then wd, active_usethis_proj and active_rstudio_proj
+  #     will be the same
+  #   - If the user wasn't in a rstudio project, then the wd and the active_usethis_proj will
+  #     be the same, but the active_rstudio_proj will be NULL
+  # in debug mode, see the active_*_proj with usethis::proj_sitrep()
+  withr::defer(usethis::proj_set(old_project), envir = .envir)
+
 
   # last step, check the database for last commit hash, and if is equal return invisible FALSE,
   # but if not, update the db with the last commit hash
