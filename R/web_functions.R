@@ -231,7 +231,10 @@ update_emf_web <- function(dest) {
   create_from_emf_github('emf_web', .update_commit_db = FALSE)
 
   # build the site
-  blogdown::build_site()
+  # blogdown::build_site()
+  withr::with_options(
+    list(blogdown.hugo.version = "0.92.1"), blogdown::build_site()
+  )
 
   # check the build
   build_check <- check_hugo_build(content = 'content', public = 'public')
