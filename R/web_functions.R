@@ -135,7 +135,7 @@ send_error_email <- function(email_content = NULL, subject_field = "") {
   return(invisible(TRUE))
 }
 
-copy_web <- function(origin = Sys.getenv("WEB_PATH_ORIGIN"), dest = Sys.getenv("WEB_PATH_DEST")) {
+copy_web <- function(origin, dest) {
   # we need to copy the public folder from hugo build to the web server folder,
   # but first we need to remove the old one.
   # Also, all of this with a backup in a temp folder in case anything goes
