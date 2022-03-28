@@ -145,11 +145,12 @@ copy_web <- function(origin, dest) {
   # create a backup from the destination
   backup_old_web <- create_web_backup(dest)
 
-  # remove dest folder
-  fs::dir_delete(dest)
+  # remove dest folder contents
+  fs::file_delete(fs::dir_ls(dest))
 
   # copy new web data
   fs::dir_copy(origin, dest, TRUE)
+  # system(paste0("cp -a ", origin, "/. ", dest))
 
   # now check that origin and dest now are the same
   origin_folder_info <- fs::dir_info(fs::path_rel(origin, origin), recurse = TRUE) %>%
