@@ -17,15 +17,33 @@
 #'
 #' @export
 render_rd_fragment <- function(
-  resource_id, dest, category, .render_quiet = TRUE, .force = FALSE, .con = NULL, .input = NULL, ...
+  resource_id, dest, category,
+  .render_quiet = TRUE, .force = FALSE, .con = NULL, .input = NULL, ...
 ) {
 
   if (is.null(.input)) {
     .input <- glue::glue("{resource_id}.Rmd")
   }
 
-  # clone the repository in a temporal folder that will be cleaned afterwards
-  should_be_updated <- create_from_emf_github(resource_id, .con = .con, ...)
+  # if resource is a softwork, then the .repository and the .default_git
+  # can be different:
+  if (category == 'softworks') {
+    repository_info <- public_softworks(softwork == resource_id, .con = .con) %>%
+      dplyr::pull(url_source) %>%
+      stringr::str_split(pattern = '/', simplify = TRUE) %>%
+      magrittr::extract(4:5) %>%
+      magrittr::set_names(c('.default_git', '.repository'))
+
+    should_be_updated <- create_from_emf_github(
+      resource_id, .con = .con,
+      .repository = repository_info[[".repository"]],
+      .default_git = repository_info[[".default_git"]],
+      ...
+    )
+  } else {
+    # clone the repository in a temporal folder that will be cleaned afterwards
+    should_be_updated <- create_from_emf_github(resource_id, .con = .con, ...)
+  }
 
   # if file does not exists, it doesn't matter if should be updated or not
   if (!fs::file_exists(.input)) {
@@ -456,7 +474,10 @@ update_all_resource_pages <- function(...) {
 
 delete_page <- function(
   resource_id,
-  resource_type = c('workflows', 'tech_docs', 'models', 'data', 'softworks'),
+  resource_type = c(
+    'workflows', 'tech_docs', 'models', 'data', 'softworks',
+    'external_models', 'external_data'
+  ),
   .web_path = Sys.getenv('WEB_PATH')
 ) {
   page_path <- fs::path(.web_path, 'content', resource_type, resource_id)
