@@ -45,20 +45,20 @@ pq__text_to_vector_parser <- function(pq__text) {
 # write file (overwritting existing file). Code for writing taken from usethis::write_over and
 # xfun::write_utf8, because usethis::write_over (which would be ideal), requires mandatory user input to
 # overwrite, with no way to avoid it.
-write_lines_utf8 <- function(lines, path) {
-  if (equal_lines_utf8(lines, path)) {
-    return(invisible(FALSE))
-  }
-  writeLines(enc2utf8(lines), path, useBytes = TRUE)
-  return(invisible(TRUE))
-}
-
-equal_lines_utf8 <- function(lines, path) {
-  if (!fs::file_exists(path)) {
-    return(FALSE)
-  }
-  identical(readLines(path, warn = FALSE, encoding = 'UTF8'), lines)
-}
+# write_lines_utf8 <- function(lines, path) {
+#   if (equal_lines_utf8(lines, path)) {
+#     return(invisible(FALSE))
+#   }
+#   writeLines(enc2utf8(lines), path, useBytes = TRUE)
+#   return(invisible(TRUE))
+# }
+#
+# equal_lines_utf8 <- function(lines, path) {
+#   if (!fs::file_exists(path)) {
+#     return(FALSE)
+#   }
+#   identical(readLines(path, warn = FALSE, encoding = 'UTF8'), lines)
+# }
 
 #' Clone and set project from github
 #'
@@ -339,4 +339,19 @@ nas_to_empty_strings <- function(x) {
 
 is_na_or_null <- function(x) {
   is.null(x) || is.na(x)
+}
+
+create_folder_backup <- function(path, .envir = parent.frame()) {
+  # create a temp folder for the backup
+  backup_folder <- emf_temp_folder()
+
+  # defer the removing of the folder for when the parent envir closes (or the
+  # one supplied)
+  withr::defer(fs::dir_delete(backup_folder), envir = .envir)
+
+  # copy web to the temp folder
+  fs::dir_copy(path, backup_folder)
+
+  # return the temp folder path to use it later if needed
+  return(fs::path(fs::dir_ls(backup_folder)))
 }

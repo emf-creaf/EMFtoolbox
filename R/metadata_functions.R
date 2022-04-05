@@ -709,15 +709,21 @@ metadata_db_con <- function(
   host = Sys.getenv('EMF_DATABASE_HOST'),
   user = Sys.getenv('EMF_DATABASE_USER'),
   password = Sys.getenv('EMF_DATABASE_PASS'),
-  dbname = Sys.getenv('EMF_DATABASE')
+  dbname = Sys.getenv('EMF_DATABASE'),
+  .envir = parent.frame()
 ) {
-  pool::dbPool(
+
+  db_conn <- pool::dbPool(
     drv = RPostgres::Postgres(),
     host = host,
     user = user,
     password = password,
     dbname = dbname
   )
+  # defer the closing of the pool
+  withr::defer(pool::poolClose(db_conn), envir = .envir)
+  # return the db object
+  return(db_conn)
 }
 
 #' Access the public_* tables.

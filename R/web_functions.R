@@ -1,18 +1,3 @@
-create_web_backup <- function(path, .envir = parent.frame()) {
-  # create a temp folder for the backup
-  backup_folder <- emf_temp_folder()
-
-  # defer the removing of the folder for when the parent envir closes (or the
-  # one supplied)
-  withr::defer(fs::dir_delete(backup_folder), envir = .envir)
-
-  # copy web to the temp folder
-  fs::dir_copy(path, backup_folder)
-
-  # return the temp folder path to use it later if needed
-  return(fs::path(fs::dir_ls(backup_folder)))
-}
-
 check_hugo_build <- function(content, public) {
   # empty vectors for errors found, to fill later
   offending_directories <- character()
@@ -143,7 +128,7 @@ copy_web <- function(origin, dest) {
   # Finally, if something goes wrong, send an email.
 
   # create a backup from the destination
-  backup_old_web <- create_web_backup(dest)
+  backup_old_web <- create_folder_backup(dest)
 
   # remove dest folder contents
   fs::file_delete(fs::dir_ls(dest))
