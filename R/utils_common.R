@@ -138,29 +138,68 @@ get_resource_last_commit_from_db <- function(resource_id, .con) {
     dplyr::pull(last_commit_hash)
 }
 
-update_resource_last_commit_db <- function(resource_id, .con) {
-  repo_last_commit <- gert::git_commit_info()$id
-  db_last_commit <- get_resource_last_commit_from_db(resource_id, .con)
-  if (identical(repo_last_commit, db_last_commit)) {
-    usethis::ui_info('{resource_id} last commit up-to-date with database')
+get_resource_last_commit_from_repo <- function(repo, org, .branch) {
+  httr::GET(
+    url = glue::glue_safe(
+      "https://api.github.com/repos/{org}/{repo}/commits/{.branch}"
+    ),
+    config = httr::authenticate(
+      user = gh::gh_whoami()$login, password = Sys.getenv("GITHUB_PAT")
+    )
+  ) %>%
+    httr::content() %>%
+    magrittr::extract2('sha')
+}
+
+update_resource_last_commit_db <- function(repo, repo_db = repo, org, .con, .branch = 'main') {
+
+  if (!check_last_commit_for(repo, repo_db, org, .con = .con, .branch = .branch)) {
     return(invisible(FALSE))
   }
 
-  usethis::ui_info('{resource_id} last commit is ahead of database, updating...')
+  last_commit_repo <- get_resource_last_commit_from_repo(
+    repo = repo, org = org, .branch = .branch
+  )
+
+  usethis::ui_info('{repo_db} last commit is ahead of database, updating...')
   update_resource_last_commit_queries <- list(
     remove = glue::glue_sql(
-      "DELETE FROM resources_last_commit WHERE id = {resource_id};",
+      "DELETE FROM resources_last_commit WHERE id = {repo_db};",
       .con = .con
     ),
     insert = glue::glue_sql(
-      "INSERT INTO resources_last_commit (id, last_commit_hash) VALUES ({resource_id}, {repo_last_commit});",
+      "INSERT INTO resources_last_commit (id, last_commit_hash) VALUES ({repo_db}, {last_commit_repo});",
       .con = .con
     )
   )
   purrr::walk(update_resource_last_commit_queries, ~ DBI::dbExecute(.con, .x))
-  usethis::ui_done("{resource_id} last commit succesfully updated")
+  usethis::ui_done("{repo_db} last commit succesfully updated")
   return(invisible(TRUE))
 }
+
+# update_resource_last_commit_db <- function(resource_id, .con) {
+#   last_commit_repo <- gert::git_commit_info()$id
+#   db_last_commit <- get_resource_last_commit_from_db(resource_id, .con)
+#   if (identical(last_commit_repo, db_last_commit)) {
+#     usethis::ui_info('{resource_id} last commit up-to-date with database')
+#     return(invisible(FALSE))
+#   }
+#
+#   usethis::ui_info('{resource_id} last commit is ahead of database, updating...')
+#   update_resource_last_commit_queries <- list(
+#     remove = glue::glue_sql(
+#       "DELETE FROM resources_last_commit WHERE id = {resource_id};",
+#       .con = .con
+#     ),
+#     insert = glue::glue_sql(
+#       "INSERT INTO resources_last_commit (id, last_commit_hash) VALUES ({resource_id}, {last_commit_repo});",
+#       .con = .con
+#     )
+#   )
+#   purrr::walk(update_resource_last_commit_queries, ~ DBI::dbExecute(.con, .x))
+#   usethis::ui_done("{resource_id} last commit succesfully updated")
+#   return(invisible(TRUE))
+# }
 
 # transform the excel file for external data
 external_data_transform <- function(external_data_file = 'ExternalDataSources.xlsx') {

@@ -213,7 +213,10 @@ check_web_conectivity <- function() {
 update_emf_web <- function(dest) {
 
   # clone the web repo
-  create_from_emf_github('emf_web', .update_commit_db = FALSE)
+  # create_from_emf_github('emf_web', .update_commit_db = FALSE)
+  clone_from_github(
+    repo = 'emf_web', org = 'emf-creaf'
+  )
 
   # build the site
   # blogdown::build_site()

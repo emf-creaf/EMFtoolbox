@@ -538,18 +538,9 @@ md_content_generator <- function(resource_metadata, dest, category, .external = 
     ""
   )
 
-  if (!isTRUE(.external)) {
-    # copy intermediate images
-    usethis::ui_info("Copying the intermediate images needed:")
-    intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) %>%
-      purrr::walk(usethis::ui_todo)
-  } else {
-    # copy intermediate images
-    usethis::ui_info("Copying the intermediate images needed:")
-    intermediate_images <- copy_images(folder = '.', dest, category) %>%
-      purrr::walk(usethis::ui_todo)
-
-  }
+  usethis::ui_info("Copying the intermediate images needed:")
+  intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) %>%
+    purrr::walk(usethis::ui_todo)
 
   return(md_content)
 
