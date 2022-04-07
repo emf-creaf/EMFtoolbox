@@ -74,30 +74,6 @@ clone_from_github <- function(repo, org, .envir = parent.frame()) {
   return(invisible(dir))
 }
 
-
-
-rd_postprocessing <- function(rd_fragment, intermediate_images) {
-
-  # image postprocessing:
-  # converting all images calls "![]()" to {{< image >}}
-  purrr::map(
-    intermediate_images,
-    ~ which(stringr::str_detect(rd_fragment, .x))
-  ) %>%
-    purrr::iwalk(
-      function(index, image_path) {
-        image_shorthand <- glue::glue(
-          '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = TRUE) %>% dplyr::last()}" class="single-image" >}}}}'
-        )
-
-        rd_fragment[index] <<- image_shorthand
-      }
-    )
-
-  rd_fragment
-
-}
-
 create_folder_backup <- function(path, .envir = parent.frame()) {
   # create a temp folder for the backup
   backup_folder <- emf_temp_folder()

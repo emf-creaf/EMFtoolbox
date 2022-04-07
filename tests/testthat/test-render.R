@@ -1,14 +1,21 @@
-# # renders tests
-#
-# withr::local_envvar(list(
-#   EMF_DATABASE = "emf_metadata_dummy",
-#   WEB_PATH = "/home/malditobarbudo/data/CREAF/projects/emf/emf_web/emf_hugo_theme_site_example"
-# ))
-#
-# # connecting to the database (and close it later)
-# emf_database <- metadata_db_con()
-# withr::defer(pool::poolClose(emf_database))
-#
+# renders tests
+
+withr::local_envvar(list(
+  EMF_DATABASE = "emf_metadata_dummy",
+  WEB_PATH = "/home/malditobarbudo/data/CREAF/projects/emf/emf_web/emf_hugo_theme_site_example"
+  PROD_FOLDER = "~/temporal_garbage"
+))
+
+# connecting to the database (and close it later)
+emf_database <- metadata_db_con()
+
+test_that("render utils work as intended", {
+
+  expect_true(TRUE)
+
+
+})
+
 # test_that('render_rd_fragment works as expected', {
 #   tmp_dest <- tempdir()
 #

@@ -48,7 +48,6 @@ test_that("files are created correctly", {
 
 # connecting to the database (and close it later)
 emf_database <- metadata_db_con()
-withr::defer(pool::poolClose(emf_database))
 
 # deferring the db cleaning
 # When we finish the unit test, we remove the dummy resource from the db

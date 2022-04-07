@@ -960,3 +960,38 @@ is_na_or_null <- function(x) {
   is.null(x) || is.na(x)
 }
 
+#' Rd file postprocessing
+#'
+#' Rd file postprocessing
+#'
+#' Necessary postprocessing steps after rendering the Rd file for Hugo.
+#' For now adding image shorthands to substitute the rmarkdown normal image
+#' tag
+#'
+#' @param rd_fragment lines from the generated Rd file in the render step
+#' @intermediate_images vector of image names as obtained from \code{copy_images}
+#'
+#' @return rd_fragment with all lines corresponding to images with the shrothand
+#'
+#' @noRd
+rd_postprocessing <- function(rd_fragment, intermediate_images) {
+
+  # image postprocessing:
+  # converting all images calls "![]()" to {{< image >}}
+  purrr::map(
+    intermediate_images,
+    ~ which(stringr::str_detect(rd_fragment, .x))
+  ) %>%
+    purrr::iwalk(
+      function(index, image_path) {
+        image_shorthand <- glue::glue(
+          '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = TRUE) %>% dplyr::last()}" class="single-image" >}}}}'
+        )
+
+        rd_fragment[index] <<- image_shorthand
+      }
+    )
+
+  rd_fragment
+
+}
