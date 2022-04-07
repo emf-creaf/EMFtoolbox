@@ -213,10 +213,8 @@ check_web_conectivity <- function() {
 copy_emf_web <- function(dest) {
 
   # clone the web repo if needed
-  if (!stringr::str_detect(gert::git_info()$path, "emf_web")) {
-    clone_from_github(
-      repo = 'emf_web', org = 'emf-creaf'
-    )
+  if (!stringr::str_detect(usethis::proj_sitrep()$working_directory, 'emf_web')) {
+    clone_from_github(repo = 'emf_web', org = 'emf-creaf')
   }
 
   # build the site
