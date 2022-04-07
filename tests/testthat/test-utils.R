@@ -1,2 +1,2 @@
 ## TODO tests for utils:
-##    - create_from_emf_github inside and outside projects!!
+##    - clone_from_github inside and outside projects!!

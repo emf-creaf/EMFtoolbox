@@ -417,60 +417,6 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
 
 }
 
-#' Clone from github
-#'
-#' Wrapper around \code{\link[usethis]{create_from_github}} but with a twist
-#'
-#' This function clone a github repo in a temporal folder and set the active
-#' project (usethis project) to the cloned folder. It ensures that after exiting
-#' the parent function (the calling env) the previous project (if any) is
-#' reactivated again
-#'
-#' @param repo character with repo name
-#' @param org character with organization/user name
-#' @param .envir environment to look after for cleaning steps (setting old
-#'   project, removing temp folders...). See \code{\link[withr]{defer}}.
-#'
-#' @return invisible path to the temporal cloned folder
-#'
-#' @noRd
-clone_from_github <- function(repo, org, .envir = parent.frame()) {
-  temp_proj <- emf_temp_folder()
-  withr::defer(fs::dir_delete(temp_proj), envir = .envir)
-
-  # store the current project (if any)
-  this_is_a_project <- !is.null(usethis::proj_sitrep()[["active_rstudio_proj"]])
-  old_project <- getwd()
-  if (this_is_a_project) {
-    old_project <- usethis::proj_get()
-  }
-
-  # create the repo
-  usethis::create_from_github(
-    repo_spec = glue::glue("{org}/{repo}"),
-    destdir = temp_proj,
-    fork = FALSE,
-    rstudio = FALSE,
-    open = FALSE
-  )
-
-  # go to the cloned folder and do whatever it needs, but always back
-  # again to the original one when finish (defer)
-  dir <- fs::path(temp_proj, repo)
-  setwd(dir)
-  usethis::proj_set(dir, force = TRUE)
-  withr::defer(setwd(old_project), envir = .envir)
-  # this will set the active_usethis_proj to the same as the working directory
-  #   - If the user was already in a project, then wd, active_usethis_proj and active_rstudio_proj
-  #     will be the same
-  #   - If the user wasn't in a rstudio project, then the wd and the active_usethis_proj will
-  #     be the same, but the active_rstudio_proj will be NULL
-  # in debug mode, see the active_*_proj with usethis::proj_sitrep()
-  withr::defer(usethis::proj_set(old_project, force = TRUE), envir = .envir)
-
-  return(invisible(dir))
-}
-
 #' Check last commit
 #'
 #' Check last commit of a repo against the metadata database
@@ -492,8 +438,8 @@ clone_from_github <- function(repo, org, .envir = parent.frame()) {
 #' @noRd
 check_last_commit_for <- function(
     repo,
-    org = "emf-creaf",
     repo_db = NULL,
+    org = "emf-creaf",
     .con, .branch = 'main'
 ) {
 
@@ -683,3 +629,334 @@ rendered_summary <- function(rendered_pages) {
 
   return(invisible(TRUE))
 }
+
+#' Delete page from web content
+#'
+#' Delete page from web content
+#'
+#' Give a resource id and a resource type, the corresponding content
+#' folder in the Hugo web folder is removed
+#'
+#' @param resource_id character with the ID of the resource
+#' @param resource_type character with the resource type
+#' @param .web_path path to the Hugo web folder
+#'
+#' @return Invisible TRUE
+#'
+#' @noRd
+delete_page <- function(
+    resource_id,
+    resource_type = c(
+      'workflows', 'tech_docs', 'models', 'data', 'softworks',
+      'external_models', 'external_data'
+    ),
+    .web_path = Sys.getenv('WEB_PATH')
+) {
+  page_path <- fs::path(.web_path, 'content', resource_type, resource_id)
+  fs::dir_delete(page_path)
+  return(invisible(TRUE))
+}
+
+#' Front matter generator for resource pages
+#'
+#' Front matter generator for resource pages
+#'
+#' @param resource_metadata tibble with the resource metadata (one row)
+#' @param category character with the category in the Hugo web (plural)
+#' @param .external Not used
+#'
+#' @return Vector with the yaml header lines
+#'
+#' @noRd
+frontmatter_generator <- function(resource_metadata, category, .external = FALSE) {
+
+  # create the yaml frontmatter from the metadata
+  yaml_frontmatter <-
+    list(
+      title = resource_metadata$title,
+      authors = pq__text_to_vector_parser(resource_metadata$author),
+      categories = category,
+      tags = pq__text_to_vector_parser(resource_metadata$tag),
+      draft = resource_metadata$emf_draft,
+      featured = FALSE,
+      date = dplyr::if_else(
+        is_na_or_null(resource_metadata$date),
+        as.character(Sys.Date()),
+        as.character(resource_metadata$date)
+      ),
+      lastmod = dplyr::if_else(
+        is_na_or_null(resource_metadata$date_lastmod),
+        as.character(Sys.Date()),
+        as.character(resource_metadata$date_lastmod)
+      ),
+      summary = resource_metadata$description,
+      model_repository = resource_metadata$model_repository,
+      data_repository = resource_metadata$data_repository,
+      links = list(
+        url_doi = resource_metadata$url_doi,
+        url_pdf = resource_metadata$url_pdf,
+        url_source = resource_metadata$url_source,
+        url_docs = resource_metadata$url_docs
+      )
+    ) %>%
+    purrr::map(nas_to_empty_strings) %>%
+    ymlthis::as_yml() %>%
+    capture_yml()
+
+  if (isTRUE(.external)) {
+
+  }
+
+  return(yaml_frontmatter)
+
+}
+
+#' md file content generator from metadata
+#'
+#' md file content generator from metadata
+#'
+#' This function generates content from resource metadata (i.e. for models or
+#' data).
+#'
+#' @param resource_metadata tibble with the resource metadata (one row)
+#' @param dest path to Hugo web, for resource image copy (basically featured.png)
+#' @param category character with the category in the Hugo web (plural)
+#' @param .external Not used
+#'
+#' @return Vector with the content lines
+#'
+#' @noRd
+md_content_generator <- function(resource_metadata, dest, category, .external = FALSE) {
+
+  # create the content from the metadata
+  md_content <- c(
+    "",
+    "## Description",
+    "",
+    resource_metadata$description,
+    ""
+  )
+
+  usethis::ui_info("Copying the intermediate images needed:")
+  intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) %>%
+    purrr::walk(usethis::ui_todo)
+
+  return(md_content)
+
+}
+
+#' Parsing "pq__text" columns to flattened character vectors.
+#'
+#' Parsed the defined format to obtain the array columns from postgres
+#'
+#' We have defined a format: \code{\\{element1,element2,...,elementn\\}} to obtain the array postgres values
+#' when importing to R tibbles. This functions parses this and transform it to a vector to use in yamls or
+#' others.
+#'
+#' @param pq__text character string as obtained from public_* metadata db tables
+#'
+#' @return A character vector with the elements of the metadata field
+#'
+#' @examples
+#' pq__text_to_vector_parser("{dummy,workflow,larara}")
+#'
+#' @noRd
+pq__text_to_vector_parser <- function(pq__text) {
+  stringr::str_remove_all(pq__text, '[{}\"]') %>%
+    stringr::str_split(',') %>%
+    purrr::flatten_chr()
+}
+
+#' Get resource last commit in the database
+#'
+#' Get resource last commit in the database
+#'
+#' Connects to the database and retrieve the last commit for the desired
+#' resource
+#'
+#' @param resource_id character with the resource id
+#' @param .con pool::pool object with the metadata database connection info
+#'
+#' @return Hash for the last commit stored in the database for \code{resource_id}
+#'
+#' @noRd
+get_resource_last_commit_from_db <- function(resource_id, .con) {
+  dplyr::tbl(.con, 'resources_last_commit') %>%
+    dplyr::filter(id == resource_id) %>%
+    dplyr::collect() %>%
+    dplyr::pull(last_commit_hash)
+}
+
+#' Get resource last commit in the remote repository
+#'
+#' Get resource last commit in the remote repository
+#'
+#' Connects to GitHub API and retrieve the last commit for the desired
+#' resource
+#'
+#' @param repo character with repo name
+#' @param org character with organization/user name
+#' @param .branch character with branch name (default to main)
+#'
+#' @return Hash for the last commit in the \code{resource_id} remote repository
+#'
+#' @noRd
+get_resource_last_commit_from_repo <- function(repo, org, .branch) {
+  httr::GET(
+    url = glue::glue_safe(
+      "https://api.github.com/repos/{org}/{repo}/commits/{.branch}"
+    ),
+    config = httr::authenticate(
+      user = gh::gh_whoami()$login, password = Sys.getenv("GITHUB_PAT")
+    )
+  ) %>%
+    httr::content() %>%
+    magrittr::extract2('sha')
+}
+
+#' Update resource last commit in the database
+#'
+#' Update resource last commit in the database
+#'
+#' This function checks if the resource repository is ahead of the database, and
+#' if it is, updates the db with the new commit hash
+#'
+#' @param repo character with repo name
+#' @param repo_db character with the repo name in the database. If NULL it
+#'   defaults to repo value
+#' @param org character with organization/user name
+#' @param .con pool::pool object with the metadata database connection info
+#' @param .branch character with branch name (default to main)
+#'
+#' @return Invisible TRUE if update occurs, FALSE otherwise
+#'
+#' @noRd
+update_resource_last_commit_db <- function(repo, repo_db = repo, org, .con, .branch = 'main') {
+
+  if (!check_last_commit_for(
+    repo = repo, repo_db = repo_db, org = org,
+    .con = .con, .branch = .branch
+  )) {
+    return(invisible(FALSE))
+  }
+
+  last_commit_repo <- get_resource_last_commit_from_repo(
+    repo = repo, org = org, .branch = .branch
+  )
+
+  usethis::ui_info('{repo_db} last commit is ahead of database, updating...')
+  update_resource_last_commit_queries <- list(
+    remove = glue::glue_sql(
+      "DELETE FROM resources_last_commit WHERE id = {repo_db};",
+      .con = .con
+    ),
+    insert = glue::glue_sql(
+      "INSERT INTO resources_last_commit (id, last_commit_hash) VALUES ({repo_db}, {last_commit_repo});",
+      .con = .con
+    )
+  )
+  purrr::walk(update_resource_last_commit_queries, ~ DBI::dbExecute(.con, .x))
+  usethis::ui_done("{repo_db} last commit succesfully updated")
+  return(invisible(TRUE))
+}
+
+#' Capture yaml lines to write
+#'
+#' Capture yaml lines to write
+#'
+#' @param yml yml object (\code{\link[ymlthis]{as_yml}})
+#'
+#' @return captured output (lines) without color attributes of the provided ylm
+capture_yml <- function(yml) {
+  withr::local_envvar(NO_COLOR = TRUE)
+  utils::capture.output(print(yml))
+}
+
+#' Copy image artifacts
+#'
+#' Copy image artifacts
+#'
+#' Copy any generated image artifact (from the render step) to the corresponding
+#' content folder.
+#'
+#' @param folder Rendering path, default to working folder
+#' @param dest Destination path
+#' @param category character with the Hugo category (plural)
+#' @param formats image artifact formats to watch and copy
+#'
+#' @return FALSE if no images are copied. A vector of image file names copied
+#'   otherwise
+#'
+#' @noRd
+copy_images <- function(folder = '.', dest, category, formats = c('png', 'jpg', 'svg')) {
+  # list images in folders (by formats) and copy them to dest
+
+  # list of images
+  images_list <- fs::dir_ls(
+    path = folder,
+    recurse = TRUE,
+    type = "file",
+    regexp = glue::glue("[.]{glue::glue_collapse(formats, '|')}$")
+  )
+
+  if (!any(stringr::str_detect(images_list, '^featured.png$'))) {
+    images_list <- c(
+      images_list,
+      system.file('default_featured_images', category, 'featured.png', package = 'EMFtoolbox')
+    )
+  }
+
+  if (length(images_list) < 1) {
+    usethis::ui_done("No intermediate images needed")
+    return(invisible(FALSE))
+  }
+
+  fs::file_copy(images_list, dest, overwrite = TRUE)
+  return(invisible(images_list))
+}
+
+#' Convert NA to empty string
+#'
+#' Convert NA to empty string
+#'
+#' If \code{x} is a list, the function recurses itself by all elements of x.
+#' If \code{x} is a character vector, the function recurses itself by all
+#'   elements using \code{\link[purrr]{map_chr}}.
+#'
+#' @param x object to check
+#'
+#' @return If \code{x} is NA the "", \code{x} otherwise. For lists and vectors,
+#'   \code{x} with all NA elements transformed to ""
+#'
+#' @noRd
+nas_to_empty_strings <- function(x) {
+  if (length(x) > 1) {
+    if (is.list(x)) {
+      return(purrr::map(x, nas_to_empty_strings))
+    } else {
+      return(purrr::map_chr(x, nas_to_empty_strings))
+    }
+
+  }
+  if (is_na_or_null(x)) {
+    x <- ''
+  }
+
+  return(x)
+}
+
+#' Is NA or NULL
+#'
+#' Is NA or NULL
+#'
+#' This function checks if an object is NA or NULL
+#'
+#' @param x object to test
+#'
+#' @return TRUE if \code{x} is NA or NULL, FALSE otherwise
+#'
+#' @noRd
+is_na_or_null <- function(x) {
+  is.null(x) || is.na(x)
+}
+

@@ -20,64 +20,24 @@ emf_temp_folder <- function() {
   return(folder_path)
 }
 
-#' Parsing "pq__text" columns to flattened character vectors.
+#' Clone from github
 #'
-#' Parsed the defined format to obtain the array columns from postgres
+#' Wrapper around \code{\link[usethis]{create_from_github}} but with a twist
 #'
-#' We have defined a format: \code{\\{element1,element2,...,elementn\\}} to obtain the array postgres values
-#' when importing to R tibbles. This functions parses this and transform it to a vector to use in yamls or
-#' others.
+#' This function clone a github repo in a temporal folder and set the active
+#' project (usethis project) to the cloned folder. It ensures that after exiting
+#' the parent function (the calling env) the previous project (if any) is
+#' reactivated again
 #'
-#' @param pq__text character string as obtained from public_* metadata db tables
+#' @param repo character with repo name
+#' @param org character with organization/user name
+#' @param .envir environment to look after for cleaning steps (setting old
+#'   project, removing temp folders...). See \code{\link[withr]{defer}}.
 #'
-#' @return A character vector with the elements of the metadata field
+#' @return invisible path to the temporal cloned folder
 #'
-#' @examples
-#' pq__text_to_vector_parser("{dummy,workflow,larara}")
-#'
-#' @export
-pq__text_to_vector_parser <- function(pq__text) {
-  stringr::str_remove_all(pq__text, '[{}\"]') %>%
-    stringr::str_split(',') %>%
-    purrr::flatten_chr()
-}
-
-# write file (overwritting existing file). Code for writing taken from usethis::write_over and
-# xfun::write_utf8, because usethis::write_over (which would be ideal), requires mandatory user input to
-# overwrite, with no way to avoid it.
-# write_lines_utf8 <- function(lines, path) {
-#   if (equal_lines_utf8(lines, path)) {
-#     return(invisible(FALSE))
-#   }
-#   writeLines(enc2utf8(lines), path, useBytes = TRUE)
-#   return(invisible(TRUE))
-# }
-#
-# equal_lines_utf8 <- function(lines, path) {
-#   if (!fs::file_exists(path)) {
-#     return(FALSE)
-#   }
-#   identical(readLines(path, warn = FALSE, encoding = 'UTF8'), lines)
-# }
-
-#' Clone and set project from github
-#'
-#' Temporal cloned repository to work with the resource (render...)
-#'
-#' This function creates a temporal folder, clone the desired repository and set the active project on it
-#'
-#' @param resource_id Resource ID
-#' @param .envir envir for \code{withr::defer}, default to \code{parent.frame()}
-#' @param .con connection to the db
-#' @param .external is the resource external
-#' @param .repository if .external is TRUE, the id of the external data/models repository
-
-create_from_emf_github <- function(
-  resource_id, .envir = parent.frame(),
-  .con = NULL, .external = FALSE,
-  .repository = resource_id, .default_git = "emf-creaf",
-  .update_commit_db = TRUE
-) {
+#' @noRd
+clone_from_github <- function(repo, org, .envir = parent.frame()) {
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
 
@@ -88,9 +48,9 @@ create_from_emf_github <- function(
     old_project <- usethis::proj_get()
   }
 
-  # create the repo based on resource_id
+  # create the repo
   usethis::create_from_github(
-    repo_spec = glue::glue("{.default_git}/{.repository}"),
+    repo_spec = glue::glue("{org}/{repo}"),
     destdir = temp_proj,
     fork = FALSE,
     rstudio = FALSE,
@@ -99,7 +59,7 @@ create_from_emf_github <- function(
 
   # go to the cloned folder and do whatever it needs, but always back
   # again to the original one when finish (defer)
-  dir <- fs::path(temp_proj, .repository)
+  dir <- fs::path(temp_proj, repo)
   setwd(dir)
   usethis::proj_set(dir, force = TRUE)
   withr::defer(setwd(old_project), envir = .envir)
@@ -111,231 +71,10 @@ create_from_emf_github <- function(
   # in debug mode, see the active_*_proj with usethis::proj_sitrep()
   withr::defer(usethis::proj_set(old_project, force = TRUE), envir = .envir)
 
-
-  # last step, check the database for last commit hash, and if is equal return invisible FALSE,
-  # but if not, update the db with the last commit hash
-  # connect to database if needed
-  if (.update_commit_db) {
-    # connect to database
-    if (is.null(.con)) {
-      usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
-      .con <- metadata_db_con()
-      # close the connection when the function exits
-      withr::defer(pool::poolClose(.con))
-    }
-    # update last commit
-    return(update_resource_last_commit_db(resource_id, .con))
-  }
-
   return(invisible(dir))
-
-}
-
-get_resource_last_commit_from_db <- function(resource_id, .con) {
-  dplyr::tbl(.con, 'resources_last_commit') %>%
-    dplyr::filter(id == resource_id) %>%
-    dplyr::collect() %>%
-    dplyr::pull(last_commit_hash)
-}
-
-get_resource_last_commit_from_repo <- function(repo, org, .branch) {
-  httr::GET(
-    url = glue::glue_safe(
-      "https://api.github.com/repos/{org}/{repo}/commits/{.branch}"
-    ),
-    config = httr::authenticate(
-      user = gh::gh_whoami()$login, password = Sys.getenv("GITHUB_PAT")
-    )
-  ) %>%
-    httr::content() %>%
-    magrittr::extract2('sha')
-}
-
-update_resource_last_commit_db <- function(repo, repo_db = repo, org, .con, .branch = 'main') {
-
-  if (!check_last_commit_for(repo, repo_db, org, .con = .con, .branch = .branch)) {
-    return(invisible(FALSE))
-  }
-
-  last_commit_repo <- get_resource_last_commit_from_repo(
-    repo = repo, org = org, .branch = .branch
-  )
-
-  usethis::ui_info('{repo_db} last commit is ahead of database, updating...')
-  update_resource_last_commit_queries <- list(
-    remove = glue::glue_sql(
-      "DELETE FROM resources_last_commit WHERE id = {repo_db};",
-      .con = .con
-    ),
-    insert = glue::glue_sql(
-      "INSERT INTO resources_last_commit (id, last_commit_hash) VALUES ({repo_db}, {last_commit_repo});",
-      .con = .con
-    )
-  )
-  purrr::walk(update_resource_last_commit_queries, ~ DBI::dbExecute(.con, .x))
-  usethis::ui_done("{repo_db} last commit succesfully updated")
-  return(invisible(TRUE))
-}
-
-# update_resource_last_commit_db <- function(resource_id, .con) {
-#   last_commit_repo <- gert::git_commit_info()$id
-#   db_last_commit <- get_resource_last_commit_from_db(resource_id, .con)
-#   if (identical(last_commit_repo, db_last_commit)) {
-#     usethis::ui_info('{resource_id} last commit up-to-date with database')
-#     return(invisible(FALSE))
-#   }
-#
-#   usethis::ui_info('{resource_id} last commit is ahead of database, updating...')
-#   update_resource_last_commit_queries <- list(
-#     remove = glue::glue_sql(
-#       "DELETE FROM resources_last_commit WHERE id = {resource_id};",
-#       .con = .con
-#     ),
-#     insert = glue::glue_sql(
-#       "INSERT INTO resources_last_commit (id, last_commit_hash) VALUES ({resource_id}, {last_commit_repo});",
-#       .con = .con
-#     )
-#   )
-#   purrr::walk(update_resource_last_commit_queries, ~ DBI::dbExecute(.con, .x))
-#   usethis::ui_done("{resource_id} last commit succesfully updated")
-#   return(invisible(TRUE))
-# }
-
-# transform the excel file for external data
-external_data_transform <- function(external_data_file = 'ExternalDataSources.xlsx') {
-
-  original_table <-
-    readxl::read_xlsx(path = external_data_file, sheet = 1, .name_repair = 'universal')
-
-  original_table %>%
-    # remove those not external, or that dont have URL or DOI
-    dplyr::filter(
-      !(is.na(URLsource)) | !(is.na(DOI)), is.na(Source) | Source != "CREAF"
-    ) %>%
-    # create all necessary variables/metadata
-    dplyr::mutate(
-      # descr & title
-      description = Description,
-      title = DataSourceName,
-      # the necessary emf metadata
-      emf_type = 'data',
-      emf_public = TRUE,
-      emf_automatized = TRUE,
-      emf_reproducible = FALSE,
-      emf_draft = FALSE,
-      emf_data_type = 'external_data',
-      # get the url and create the metadata var.
-      # for that, we choose between url and doi, with preference for the URL
-      data_repository = dplyr::if_else(!is.na(URLsource), URLsource, DOI),
-      # tags, built from model type, level and code language
-      tags = purrr::pmap(
-        list(ThematicCategory, ThematicSubcategory),
-        .f = function(x,y) {return(c(x,y))}
-      ),
-      nodes = list(""),
-      authors = list(""),
-      requirements = list(""),
-      links = purrr::pmap(
-        list(DOI, URLsource),
-        .f = function(x,y) {return(list(url_doi = x, url_source = y))}
-      )
-    ) %>%
-    dplyr::select(
-      id, description, title, emf_type, emf_public, emf_automatized,
-      emf_reproducible, emf_draft, emf_data_type, data_repository, tags,
-      nodes, authors, requirements, links
-    )
-
 }
 
 
-# transform the excel file for external models
-external_models_transform <- function(external_models_file = 'ProcessBasedModelsDatabase.xlsx') {
-
-  original_table <-
-    readxl::read_xlsx(path = external_models_file,sheet = 1, skip = 1, .name_repair = 'universal')
-
-  original_table %>%
-    # ensure external catalog entry is logical
-    dplyr::mutate(External.catalog.entry = as.logical(External.catalog.entry)) %>%
-    # remove those without DOI or URL, as then we have nothing to offer
-    dplyr::filter(!(is.na(URL)) | !(is.na(DOI)), External.catalog.entry) %>%
-    # create all necessary variables/metadata
-    dplyr::mutate(
-      # id & title
-      id = Model.name.acronym,
-      description = Short.description,
-      title = dplyr::if_else(
-        !is.na(Full.name), glue::glue("{Full.name} ({Model.name.acronym})"), Model.name.acronym
-      ),
-      # the necessary emf metadata
-      emf_type = 'model',
-      emf_public = TRUE,
-      emf_automatized = TRUE,
-      emf_reproducible = FALSE,
-      emf_draft = FALSE,
-      emf_data_type = 'external_data',
-      # get the url and create the metadata var.
-      # for that, we choose between url and doi, with preference for the URL
-      model_repository = dplyr::if_else(!is.na(URL), URL, DOI),
-      # tags, built from model type, level and code language
-      tags = purrr::pmap(
-        list(Model.type, Level, Code.language.platform),
-        .f = function(x,y,z) {return(c(x,y,z))}
-      ),
-      nodes = list(""),
-      authors = list(""),
-      requirements = list(""),
-      links = purrr::pmap(
-        list(DOI, URL),
-        .f = function(x,y) {return(list(url_doi = x, url_source = y))}
-      )
-    ) %>%
-    dplyr::select(
-      id, description, title, emf_type, emf_public, emf_automatized,
-      emf_reproducible, emf_draft, emf_data_type, model_repository, tags,
-      nodes, authors, requirements, links
-    )
-}
-
-is_external <- function(resource_metadata) {
-  !is.null(resource_metadata$emf_data_type) &&
-    !is.na(resource_metadata$emf_data_type) &&
-    resource_metadata$emf_data_type == "external_data"
-}
-
-# Capture yaml lines to write
-capture_yml <- function(yml) {
-  withr::local_envvar(NO_COLOR = TRUE)
-  utils::capture.output(print(yml))
-}
-
-copy_images <- function(folder = '.', dest, category, formats = c('png', 'jpg', 'svg')) {
-  # list images in folders (by formats) and copy them to dest
-
-  # list of images
-  images_list <- fs::dir_ls(
-    path = folder,
-    recurse = TRUE,
-    type = "file",
-    regexp = glue::glue("[.]{glue::glue_collapse(formats, '|')}$")
-  )
-
-  if (!any(stringr::str_detect(images_list, '^featured.png$'))) {
-    images_list <- c(
-      images_list,
-      system.file('default_featured_images', category, 'featured.png', package = 'EMFtoolbox')
-    )
-  }
-
-  if (length(images_list) < 1) {
-    usethis::ui_done("No intermediate images needed")
-    return(invisible(FALSE))
-  }
-
-  fs::file_copy(images_list, dest, overwrite = TRUE)
-  return(invisible(images_list))
-}
 
 rd_postprocessing <- function(rd_fragment, intermediate_images) {
 
@@ -357,27 +96,6 @@ rd_postprocessing <- function(rd_fragment, intermediate_images) {
 
   rd_fragment
 
-}
-
-nas_to_empty_strings <- function(x) {
-  if (length(x) > 1) {
-    if (is.list(x)) {
-      return(purrr::map(x, nas_to_empty_strings))
-    } else {
-      return(purrr::map_chr(x, nas_to_empty_strings))
-    }
-
-  }
-
-  if (is_na_or_null(x)) {
-    x <- ''
-  }
-
-  return(x)
-}
-
-is_na_or_null <- function(x) {
-  is.null(x) || is.na(x)
 }
 
 create_folder_backup <- function(path, .envir = parent.frame()) {

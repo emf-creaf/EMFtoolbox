@@ -853,3 +853,124 @@ public_tech_docs <- function(...) {
 public_models <- function(...) {
   use_public_table(resource_type = 'models', ...)
 }
+
+#' Transform the excel file for external data
+#'
+#' Transform the excel file for external data
+#'
+#' Make the necessary transformations from the excel file in the repository to
+#' a tibble suitable to update the metadata database
+#'
+#' @param external_data_file Character with the file name in the external data
+#'   repository
+#'
+#' @return A tibble suitable for metadata collection
+#'
+#' @noRd
+external_data_transform <- function(external_data_file = 'ExternalDataSources.xlsx') {
+
+  original_table <-
+    readxl::read_xlsx(path = external_data_file, sheet = 1, .name_repair = 'universal')
+
+  original_table %>%
+    # remove those not external, or that dont have URL or DOI
+    dplyr::filter(
+      !(is.na(URLsource)) | !(is.na(DOI)), is.na(Source) | Source != "CREAF"
+    ) %>%
+    # create all necessary variables/metadata
+    dplyr::mutate(
+      # descr & title
+      description = Description,
+      title = DataSourceName,
+      # the necessary emf metadata
+      emf_type = 'data',
+      emf_public = TRUE,
+      emf_automatized = TRUE,
+      emf_reproducible = FALSE,
+      emf_draft = FALSE,
+      emf_data_type = 'external_data',
+      # get the url and create the metadata var.
+      # for that, we choose between url and doi, with preference for the URL
+      data_repository = dplyr::if_else(!is.na(URLsource), URLsource, DOI),
+      # tags, built from model type, level and code language
+      tags = purrr::pmap(
+        list(ThematicCategory, ThematicSubcategory),
+        .f = function(x,y) {return(c(x,y))}
+      ),
+      nodes = list(""),
+      authors = list(""),
+      requirements = list(""),
+      links = purrr::pmap(
+        list(DOI, URLsource),
+        .f = function(x,y) {return(list(url_doi = x, url_source = y))}
+      )
+    ) %>%
+    dplyr::select(
+      id, description, title, emf_type, emf_public, emf_automatized,
+      emf_reproducible, emf_draft, emf_data_type, data_repository, tags,
+      nodes, authors, requirements, links
+    )
+
+}
+
+
+#' Transform the excel file for external models
+#'
+#' Transform the excel file for external models
+#'
+#' Make the necessary transformations from the excel file in the repository to
+#' a tibble suitable to update the metadata database
+#'
+#' @param external_models_file Character with the file name in the external
+#'   models repository
+#'
+#' @return A tibble suitable for metadata collection
+#'
+#' @noRd
+external_models_transform <- function(external_models_file = 'ProcessBasedModelsDatabase.xlsx') {
+
+  original_table <-
+    readxl::read_xlsx(path = external_models_file,sheet = 1, skip = 1, .name_repair = 'universal')
+
+  original_table %>%
+    # ensure external catalog entry is logical
+    dplyr::mutate(External.catalog.entry = as.logical(External.catalog.entry)) %>%
+    # remove those without DOI or URL, as then we have nothing to offer
+    dplyr::filter(!(is.na(URL)) | !(is.na(DOI)), External.catalog.entry) %>%
+    # create all necessary variables/metadata
+    dplyr::mutate(
+      # id & title
+      id = Model.name.acronym,
+      description = Short.description,
+      title = dplyr::if_else(
+        !is.na(Full.name), glue::glue("{Full.name} ({Model.name.acronym})"), Model.name.acronym
+      ),
+      # the necessary emf metadata
+      emf_type = 'model',
+      emf_public = TRUE,
+      emf_automatized = TRUE,
+      emf_reproducible = FALSE,
+      emf_draft = FALSE,
+      emf_data_type = 'external_data',
+      # get the url and create the metadata var.
+      # for that, we choose between url and doi, with preference for the URL
+      model_repository = dplyr::if_else(!is.na(URL), URL, DOI),
+      # tags, built from model type, level and code language
+      tags = purrr::pmap(
+        list(Model.type, Level, Code.language.platform),
+        .f = function(x,y,z) {return(c(x,y,z))}
+      ),
+      nodes = list(""),
+      authors = list(""),
+      requirements = list(""),
+      links = purrr::pmap(
+        list(DOI, URL),
+        .f = function(x,y) {return(list(url_doi = x, url_source = y))}
+      )
+    ) %>%
+    dplyr::select(
+      id, description, title, emf_type, emf_public, emf_automatized,
+      emf_reproducible, emf_draft, emf_data_type, model_repository, tags,
+      nodes, authors, requirements, links
+    )
+}
