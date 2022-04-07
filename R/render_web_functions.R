@@ -11,11 +11,7 @@
 #' @return A named vector for resources indicating (TRUE or FALSE) if they have
 #' been updated and rendered
 #'
-#' @examples
-#'
-#' render_resource_pages()
-#'
-#' @export
+#' @noRd
 render_resource_pages <-
   function(..., .con = NULL, .force = FALSE, .web_path = Sys.getenv("WEB_PATH")) {
 
@@ -113,6 +109,26 @@ render_resource_pages <-
     return(res)
   }
 
+#' Render rmd resources
+#'
+#' Rmd resources render function
+#'
+#' Rmd resources are those that need of rendering an specified Rmd file,
+#' i.e. workflows, tech_docs and softworks (as the README.Rmd is rendered).
+#' This functions recurse itself if resource vector is longer than 1
+#'
+#' @param resource character vector with the resource ids
+#' @param type character vector of length 1 with the resource type to render:
+#'   "workflow", "tech_doc" or "softwork"
+#' @param .con pool::pool object with the metadata database connection info
+#' @param .force logical indicating if the render shoud be forced even if
+#'   everything is up-to-date
+#' @param .web_path path to the web folder
+#'
+#' @return A list, with resources as names and logical values indicating
+#'   if that resource was rendered (TRUE) or not (FALSE)
+#'
+#' @noRd
 render_rmd <- function(resource, type, .con, .force, .web_path) {
 
   # argument checks
@@ -125,8 +141,9 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   if (length(resource) > 1) {
     safe_fun <- purrr::possibly(render_rmd, otherwise = FALSE, quiet = FALSE)
     res <-
+      resource %>%
+      magrittr::set_names(., .) %>%
       purrr::map(
-        resource,
         .f = safe_fun,
         type = type, .con = .con, .force = .force, .web_path = .web_path
       )
@@ -267,6 +284,30 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
 
 }
 
+#' Render metadata resources
+#'
+#' metadata resources render function
+#'
+#' metadata resources are those that render occur based on metadata and not
+#' in any Rmd file, i.e. models and data.
+#' This function iterates among all resources present in the type (external
+#' models, external data, creaf data or creaf models).
+#' As all resources are in the same repository, is an all or nothing situation,
+#' or all resources are rendered or none are, as they all share the same last
+#' commit.
+#'
+#' @param resources character vector with the resource ids
+#' @param type character vector of length 1 with the resource type to render:
+#'   "creaf_data", "creaf_models", "external_data" or "external_models"
+#' @param .con pool::pool object with the metadata database connection info
+#' @param .force logical indicating if the render shoud be forced even if
+#'   everything is up-to-date
+#' @param .web_path path to the web folder
+#'
+#' @return A list, with resources as names and logical values indicating
+#'   if that resource was rendered (TRUE) or not (FALSE)
+#'
+#' @noRd
 render_metadata <- function(resources, type, .con, .force, .web_path) {
 
   # argument checks
@@ -376,6 +417,23 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
 
 }
 
+#' Clone from github
+#'
+#' Wrapper around \code{\link[usethis]{create_from_github}} but with a twist
+#'
+#' This function clone a github repo in a temporal folder and set the active
+#' project (usethis project) to the cloned folder. It ensures that after exiting
+#' the parent function (the calling env) the previous project (if any) is
+#' reactivated again
+#'
+#' @param repo character with repo name
+#' @param org character with organization/user name
+#' @param .envir environment to look after for cleaning steps (setting old
+#'   project, removing temp folders...). See \code{\link[withr]{defer}}.
+#'
+#' @return invisible path to the temporal cloned folder
+#'
+#' @noRd
 clone_from_github <- function(repo, org, .envir = parent.frame()) {
   temp_proj <- emf_temp_folder()
   withr::defer(fs::dir_delete(temp_proj), envir = .envir)
@@ -413,7 +471,25 @@ clone_from_github <- function(repo, org, .envir = parent.frame()) {
   return(invisible(dir))
 }
 
-
+#' Check last commit
+#'
+#' Check last commit of a repo against the metadata database
+#'
+#' In the case of models and data, as the type shares the same repository
+#' (i.e. all external models are in the same repository), repo name does not
+#' match the resource name in the database. In those cases we need to supply
+#' repo_db with the id of the resouce in the db.
+#'
+#' @param repo character with repo name
+#' @param org character with organization/user name
+#' @param repo_db character with the repo name in the database. If NULL it
+#'   defaults to repo value
+#' @param .con pool::pool object with the metadata database connection info
+#' @param .branch character with branch name (default to main)
+#'
+#' @return Invisible FALSE if repo is up-to-date, TRUE if repo is ahead database
+#'
+#' @noRd
 check_last_commit_for <- function(
     repo,
     org = "emf-creaf",
@@ -449,23 +525,21 @@ check_last_commit_for <- function(
   return(invisible(TRUE))
 }
 
-update_web_repo <- function(
-    repo = "emf_web", org = "emf-creaf",
-    commit_message = glue::glue("{Sys.Date()} automatic update"),
-    .con = NULL, .force = FALSE
-) {
-  # pretty print
-  usethis::ui_line()
-  usethis::ui_info("Updating EMF web repository ({org}/{repo})")
-  usethis::ui_line("-----")
-
-  # Clone the web repo
-  repo_web_dir <- clone_from_github(repo = repo, org = org)
-
-  # Render all pages
-  rendered_pages <- render_resource_pages(
-    .con = .con, .force = .force, .web_path = repo_web_dir
-  )
+#' Check git status, commit and push to the remote
+#'
+#' Check git status, commit and push to the remote
+#'
+#' This function check the active working directory git status, commit any
+#' changes and push to the remote repository
+#'
+#' @param commit_message Character with the commit message
+#' @param github_pat Character wiht the remote token (GitHub)
+#'
+#' @return Invisible FALSE if no changes are found, TRUE if changes are found,
+#'   commited and pushed
+#'
+#' @noRd
+commit_push_web_repo <- function(commit_message, github_pat) {
 
   # Commit changes, only if there is changes to commit
   if (!nrow(gert::git_status()) > 0) {
@@ -479,11 +553,133 @@ update_web_repo <- function(
   # Push changes
   pushed <- gert::git_push(
     remote = 'origin',
-    ssh_key = Sys.getenv('GITHUB_PAT')
+    ssh_key = github_pat
   )
 
 
   usethis::ui_done("Web repository updated (commit: {commited}).")
   return(invisible(TRUE))
+}
 
+#' Update web repository
+#'
+#' Update web repository with new/modified content
+#'
+#' This function clone the latest commit from the remote web repository (GitHub)
+#' and render all pages that need update (\code{\link{render_resource_pages}}).
+#' After that if any changes have been made, it updates the web repository with
+#' the changes. After updating the repository, production server is updated.
+#'
+#' @param repo character with repo name
+#' @param org character with organization/user name
+#' @param commit_message Character with the commit message
+#' @param github_pat Character wiht the remote token (GitHub)
+#' @param remote logical indicating if executing from outside prod server,
+#'   default to TRUE
+#' @param .con pool::pool object with the metadata database connection info
+#' @param .force logical indicating if the render shoud be forced even if
+#'   everything is up-to-date
+#'
+#' @return invisible FALSE if no changes are to be commited and prod is not
+#'   updated (unless \code{.force = TRUE}). TRUE if everything goes correctly.
+#'
+#' @export
+update_emf_web <- function(
+    repo = "emf_web", org = "emf-creaf",
+    commit_message = glue::glue("{Sys.time()} automatic update"),
+    github_pat = Sys.getenv("GITHUB_PAT"),
+    remote = TRUE,
+    .con = NULL, .force = FALSE
+) {
+  # pretty print
+  usethis::ui_line()
+  usethis::ui_info("Updating EMF web")
+  usethis::ui_line("-----")
+
+  # Clone the web repo
+  repo_web_dir <- clone_from_github(repo = repo, org = org)
+
+  # Render all pages
+  # pretty print
+  usethis::ui_line()
+  usethis::ui_info("Render pages")
+  usethis::ui_line("-----")
+  rendered_pages <- render_resource_pages(
+    .con = .con, .force = .force, .web_path = repo_web_dir
+  )
+  rendered_summary(rendered_pages)
+
+  # pretty print
+  usethis::ui_line()
+  usethis::ui_info("Commit and push EMF web repository ({org}/{repo})")
+  usethis::ui_line("-----")
+  pushed <- commit_push_web_repo(commit_message, github_pat)
+
+  if (!pushed) {
+    usethis::ui_done(
+      "No changes detected, web repository ({org}/{repo}) up-to-date"
+    )
+    # if no force, exit gracefully
+    if (!.force) {
+      return(invisible(FALSE))
+    }
+  }
+
+  # pretty print
+  usethis::ui_line()
+  usethis::ui_info("Copy to production server")
+  usethis::ui_line("-----")
+
+  # if remote, connect to the server by ssh and execute the command in the
+  # server. If not remote, execute the function here
+  prod_folder <- Sys.getenv("PROD_FOLDER")
+  prod_output <- NA
+
+  if (remote) {
+    # connect to the server
+    prod_session <- ssh::ssh_connect(host = Sys.getenv("PROD_HOST"))
+    withr::defer(ssh::ssh_disconnect(prod_session))
+
+    # execute command
+    prod_output <- ssh::ssh_exec_internal(
+      prod_session,
+      glue::glue("R -e 'EMFtoolbox::copy_emf_web(dest = \"{prod_folder}\")'")
+    )
+
+  } else {
+    prod_output <- copy_emf_web(dest = prod_folder)
+  }
+
+  usethis::ui_done("Web in production updated!!!")
+  return(invisible(TRUE))
+}
+
+#' Print a summary of rendered pages
+#'
+#' Print a summary of rendered pages, using (\code{\link[usethis]{ui_todo}})
+#'
+#' This function takes the list returned by \code{\link{render_resource_pages}}
+#' and use it to print the list of pages rendered and not rendered
+#'
+#' @param rendered_pages A list, as returned by \code{\link{render_resource_pages}}
+#'
+#' @return Invisible TRUE after printing the summary
+#'
+#' @noRd
+rendered_summary <- function(rendered_pages) {
+  usethis::ui_line()
+  usethis::ui_info("The following pages were rendered:")
+  purrr::flatten(rendered_pages) %>%
+    purrr::keep(isTRUE) %>%
+    names() %>%
+    purrr::walk(usethis::ui_todo)
+
+  usethis::ui_line()
+  usethis::ui_info("The following pages were skipped:")
+  purrr::flatten(rendered_pages) %>%
+    purrr::keep(isFALSE) %>%
+    names() %>%
+    purrr::walk(usethis::ui_todo)
+
+  return(invisible(TRUE))
 }

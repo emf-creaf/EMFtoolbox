@@ -210,13 +210,14 @@ check_web_conectivity <- function() {
 #' @details In each step of the process, if anything fails an email is send
 #'
 #' @export
-update_emf_web <- function(dest) {
+copy_emf_web <- function(dest) {
 
-  # clone the web repo
-  # create_from_emf_github('emf_web', .update_commit_db = FALSE)
-  clone_from_github(
-    repo = 'emf_web', org = 'emf-creaf'
-  )
+  # clone the web repo if needed
+  if (!stringr::str_detect(gert::git_info()$path, "emf_web")) {
+    clone_from_github(
+      repo = 'emf_web', org = 'emf-creaf'
+    )
+  }
 
   # build the site
   # blogdown::build_site()
