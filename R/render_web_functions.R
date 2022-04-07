@@ -83,6 +83,8 @@ update_emf_web <- function(
       glue::glue("R -e 'EMFtoolbox::copy_emf_web(dest = \"{prod_folder}\")'")
     )
 
+    cat(rawToChar(prod_output$stderr))
+
   } else {
     prod_output <- copy_emf_web(dest = prod_folder)
   }
@@ -969,7 +971,8 @@ is_na_or_null <- function(x) {
 #' tag
 #'
 #' @param rd_fragment lines from the generated Rd file in the render step
-#' @intermediate_images vector of image names as obtained from \code{copy_images}
+#' @param intermediate_images vector of image names as obtained from
+#'   \code{copy_images}
 #'
 #' @return rd_fragment with all lines corresponding to images with the shrothand
 #'

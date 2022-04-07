@@ -213,12 +213,12 @@ check_web_conectivity <- function() {
 copy_emf_web <- function(dest) {
 
   # clone the web repo if needed
-  if (!stringr::str_detect(usethis::proj_sitrep()$working_directory, 'emf_web')) {
+  if (!stringr::str_detect(usethis::proj_sitrep()[['working_directory']], 'emf_web')) {
     clone_from_github(repo = 'emf_web', org = 'emf-creaf')
   }
 
   # build the site
-  # blogdown::build_site()
+  usethis::ui_info("Building site with Hugo")
   withr::with_options(
     list(blogdown.hugo.version = "0.92.1"), blogdown::build_site()
   )
@@ -239,5 +239,6 @@ copy_emf_web <- function(dest) {
   }
 
   # return TRUE if everything is ok
+  usethis::ui_done("Web copied without errors")
   return(invisible(TRUE))
 }
