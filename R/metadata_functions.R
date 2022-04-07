@@ -169,8 +169,6 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
   if (is.null(con)) {
     # connect to database
     con <- metadata_db_con()
-    # close the connection when the function exits
-    withr::defer(pool::poolClose(con))
   }
 
   # prepare the updating tables
@@ -673,8 +671,6 @@ delete_resource_from_db <- function(resource_id, con = NULL) {
   if (is.null(con)) {
     # connect to database
     con <- metadata_db_con()
-    # close the connection when the function exits
-    withr::defer(pool::poolClose(con))
   }
 
   # query
@@ -753,8 +749,6 @@ use_public_table <- function(
   if (is.null(.con)) {
     usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
     .con <- metadata_db_con()
-    # close the connection when the function exits
-    withr::defer(pool::poolClose(.con))
   }
 
   # all is special, we need the the resources table, instead of the public_* tables.
