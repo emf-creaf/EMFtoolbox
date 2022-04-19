@@ -101,7 +101,7 @@ update_emf_web <- function(
 #' present in the metadata database.
 #'
 #' @param .con Connection to the metadata database
-#' @param ... Arguments passed to render_resource_type
+#' @param ... Arguments passed to \code{\link{use_public_table}}
 #'
 #' @return A named vector for resources indicating (TRUE or FALSE) if they have
 #' been updated and rendered
@@ -484,12 +484,15 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
         resource_metadata <- metadata_table %>%
           dplyr::filter(!!filter_expr)
 
+        usethis::ui_info("Copying the intermediate images needed:")
+        intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) %>%
+          purrr::walk(usethis::ui_todo)
+
         yaml_frontmatter <- frontmatter_generator(
           resource_metadata, category, .external = external
         )
-        md_content <- md_content_generator(
-          resource_metadata, dest, category, .external = external
-        )
+        md_content <-
+          md_content_generator(resource_metadata, .external = external)
 
         writeLines(
           enc2utf8(c(yaml_frontmatter, md_content)),
@@ -552,8 +555,7 @@ check_last_commit_for <- function(
     repo = repo, org = org, .branch = .branch
   )
 
-  last_commit_db <-
-    get_resource_last_commit_from_db(repo_db, .con)
+  last_commit_db <- get_resource_last_commit_from_db(repo_db, .con)
 
   # if hashes are identical, return FALSE
   if (identical(last_commit_repo, last_commit_db)) {
@@ -655,6 +657,9 @@ delete_page <- function(
     .web_path = Sys.getenv('WEB_PATH')
 ) {
   page_path <- fs::path(.web_path, 'content', resource_type, resource_id)
+  usethis::ui_info(
+    "Deleting resource page: {page_path}"
+  )
   fs::dir_delete(page_path)
   return(invisible(TRUE))
 }
@@ -721,14 +726,12 @@ frontmatter_generator <- function(resource_metadata, category, .external = FALSE
 #' data).
 #'
 #' @param resource_metadata tibble with the resource metadata (one row)
-#' @param dest path to Hugo web, for resource image copy (basically featured.png)
-#' @param category character with the category in the Hugo web (plural)
 #' @param .external Not used
 #'
 #' @return Vector with the content lines
 #'
 #' @noRd
-md_content_generator <- function(resource_metadata, dest, category, .external = FALSE) {
+md_content_generator <- function(resource_metadata, .external = FALSE) {
 
   # create the content from the metadata
   md_content <- c(
@@ -738,10 +741,6 @@ md_content_generator <- function(resource_metadata, dest, category, .external = 
     resource_metadata$description,
     ""
   )
-
-  usethis::ui_info("Copying the intermediate images needed:")
-  intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) %>%
-    purrr::walk(usethis::ui_todo)
 
   return(md_content)
 
@@ -846,7 +845,13 @@ update_resource_last_commit_db <- function(repo, repo_db = repo, org, .con, .bra
     repo = repo, org = org, .branch = .branch
   )
 
+  if (is.null(last_commit_repo)) {
+    usethis::ui_info('{repo} is no found at {org} github, skipping db update...')
+    return(invisible(FALSE))
+  }
+
   usethis::ui_info('{repo_db} last commit is ahead of database, updating...')
+  ## TODO add IF EXISTS in the delete query
   update_resource_last_commit_queries <- list(
     remove = glue::glue_sql(
       "DELETE FROM resources_last_commit WHERE id = {repo_db};",
