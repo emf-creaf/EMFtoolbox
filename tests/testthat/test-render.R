@@ -81,6 +81,20 @@ test_that("resource last commit utils work as intended", {
     )
   )
 
+  # now test dry mode
+  if (fs::file_exists("commit_test.txt")) {
+    fs::file_delete("commit_test.txt")
+  }
+
+  writeLines(glue::glue("{Sys.time()} test commit"), "commit_test.txt")
+
+  expect_true(
+    commit_push_web_repo(
+      glue::glue("{Sys.time()} test commit"), Sys.getenv("GITHUB_PAT"),
+      .dry_push = TRUE
+    )
+  )
+
 })
 
 test_that("delete_page helper works", {
@@ -228,12 +242,22 @@ test_that("wrapper render_resource_pages works as intended", {
 # main function to update web ---------------------------------------------
 
 # TODO, make a test for the main function. probably we need a test_dummy_web repo
-# test_that("update_emf_web works as intended", {
-#
-#   # remotely
-#
-#
-# })
+test_that("update_emf_web works as intended", {
+
+  # remotely
+  expect_message(
+    (res <- update_emf_web(
+      commit_message = glue::glue("EMFtoolbox testing ({Sys.time()})"),
+      prod_folder = "~/temporal_garbage", prod_host = Sys.getenv("PROD_HOST"),
+      prod_pass = Sys.getenv("PROD_PASS"),
+      .con = emf_database, .force = FALSE, .dry_push = TRUE
+    )),
+    "Connecting to remote"
+  )
+  expect_true(res)
+
+
+})
 
 
 # test_that('render_rd_fragment works as expected', {

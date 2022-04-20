@@ -16,6 +16,7 @@
 #' @param .con pool::pool object with the metadata database connection info
 #' @param .force logical indicating if the render shoud be forced even if
 #'   everything is up-to-date
+#' @param .dry_push logical to pass to  \code{\link{commit_push_web_repo}}
 #'
 #' @return invisible FALSE if no changes are to be commited and prod is not
 #'   updated (unless \code{.force = TRUE}). TRUE if everything goes correctly.
@@ -26,7 +27,10 @@ update_emf_web <- function(
     commit_message = glue::glue("{Sys.time()} automatic update"),
     github_pat = Sys.getenv("GITHUB_PAT"),
     remote = TRUE,
-    .con = NULL, .force = FALSE
+    prod_folder = Sys.getenv("PROD_FOLDER"),
+    prod_host = Sys.getenv("PROD_HOST"),
+    prod_pass = Sys.getenv("PROD_PASS"),
+    .con = NULL, .force = FALSE, .dry_push = FALSE
 ) {
   # pretty print
   usethis::ui_line()
@@ -50,7 +54,7 @@ update_emf_web <- function(
   usethis::ui_line()
   usethis::ui_info("Commit and push EMF web repository ({org}/{repo})")
   usethis::ui_line("-----")
-  pushed <- commit_push_web_repo(commit_message, github_pat)
+  pushed <- commit_push_web_repo(commit_message, github_pat, .dry_push)
 
   if (!pushed) {
     usethis::ui_done(
@@ -64,17 +68,18 @@ update_emf_web <- function(
 
   # pretty print
   usethis::ui_line()
-  usethis::ui_info("Copy to production server")
+  usethis::ui_info("Copy to production")
   usethis::ui_line("-----")
 
   # if remote, connect to the server by ssh and execute the command in the
   # server. If not remote, execute the function here
-  prod_folder <- Sys.getenv("PROD_FOLDER")
   prod_output <- NA
 
   if (remote) {
+
+    usethis::ui_info("Connecting to remote server at {prod_host}")
     # connect to the server
-    prod_session <- ssh::ssh_connect(host = Sys.getenv("PROD_HOST"))
+    prod_session <- ssh::ssh_connect(host = prod_host, passwd = prod_pass)
     withr::defer(ssh::ssh_disconnect(prod_session))
 
     # execute command
@@ -87,6 +92,11 @@ update_emf_web <- function(
 
   } else {
     prod_output <- copy_emf_web(dest = prod_folder)
+  }
+
+  if (is_na_or_null(prod_output)) {
+    usethis::ui_oops("Something went wrong, check the outputs")
+    return(invisible(FALSE))
   }
 
   usethis::ui_done("Web in production updated!!!")
@@ -576,18 +586,27 @@ check_last_commit_for <- function(
 #' changes and push to the remote repository
 #'
 #' @param commit_message Character with the commit message
-#' @param github_pat Character wiht the remote token (GitHub)
+#' @param github_pat Character with the remote token (GitHub)
+#' @param .dry_push Logical indicating if the push to the remote repository
+#'   must be done (default, .dry_push = FALSE), or not (.dry_push = TRUE)
 #'
 #' @return Invisible FALSE if no changes are found, TRUE if changes are found,
 #'   commited and pushed
 #'
 #' @noRd
-commit_push_web_repo <- function(commit_message, github_pat) {
+commit_push_web_repo <- function(commit_message, github_pat, .dry_push = FALSE) {
 
   # Commit changes, only if there is changes to commit
   if (!nrow(gert::git_status()) > 0) {
     usethis::ui_done("No changes made in the web repository, exiting...")
     return(invisible(FALSE))
+  }
+
+  # if there are changes and .dry_push is TRUE, then we exit gracefully with a
+  # message and invisible TRUE (for testing purposes)
+  if (isTRUE(.dry_push)) {
+    usethis::ui_done("Changes detected, but dry push mode is ON. Exiting without pushing to the remote repository")
+    return(invisible(TRUE))
   }
 
   # Commit changes

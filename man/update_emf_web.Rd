@@ -10,8 +10,12 @@ update_emf_web(
   commit_message = glue::glue("{Sys.time()} automatic update"),
   github_pat = Sys.getenv("GITHUB_PAT"),
   remote = TRUE,
+  prod_folder = Sys.getenv("PROD_FOLDER"),
+  prod_host = Sys.getenv("PROD_HOST"),
+  prod_pass = Sys.getenv("PROD_PASS"),
   .con = NULL,
-  .force = FALSE
+  .force = FALSE,
+  .dry_push = FALSE
 )
 }
 \arguments{
@@ -30,6 +34,8 @@ default to TRUE}
 
 \item{.force}{logical indicating if the render shoud be forced even if
 everything is up-to-date}
+
+\item{.dry_push}{logical to pass to  \code{\link{commit_push_web_repo}}}
 }
 \value{
 invisible FALSE if no changes are to be commited and prod is not
