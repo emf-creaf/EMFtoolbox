@@ -300,7 +300,8 @@ prepare_update_metadata_tables <- function(metadata_yml) {
   # prepare the updating tables
   update_tables_list <- list(
     resources_update_table = metadata_yml[
-      !names(metadata_yml) %in% c('authors', 'tags', 'requirements', 'nodes', 'links')
+      !names(metadata_yml) %in%
+        c('authors', 'authors_aff', 'tags', 'requirements', 'nodes', 'links')
     ] %>%
       tibble::as_tibble(),
 
