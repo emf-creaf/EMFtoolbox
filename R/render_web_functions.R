@@ -91,6 +91,7 @@ update_emf_web <- function(
     cat(rawToChar(prod_output$stderr))
 
   } else {
+    usethis::ui_info("Copying locally to {prod_folder}")
     prod_output <- copy_emf_web(dest = prod_folder)
   }
 

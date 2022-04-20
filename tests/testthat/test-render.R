@@ -254,6 +254,36 @@ test_that("update_emf_web works as intended", {
     )),
     "Connecting to remote"
   )
+  expect_false(res)
+
+  expect_message(
+    (res <- update_emf_web(
+      commit_message = glue::glue("EMFtoolbox testing ({Sys.time()})"),
+      prod_folder = "~/temporal_garbage", prod_host = Sys.getenv("PROD_HOST"),
+      prod_pass = Sys.getenv("PROD_PASS"),
+      .con = emf_database, .force = TRUE, .dry_push = TRUE
+    )),
+    "Connecting to remote"
+  )
+  expect_true(res)
+
+  # locally
+  expect_message(
+    (res <- update_emf_web(
+      prod_folder = "~/temporal_garbage",
+      .con = emf_database, .force = FALSE, .dry_push = TRUE
+    )),
+    "Copying locally to"
+  )
+  expect_false(res)
+
+  expect_message(
+    (res <- update_emf_web(
+      prod_folder = "~/temporal_garbage",
+      .con = emf_database, .force = TRUE, .dry_push = TRUE
+    )),
+    "Copying locally to"
+  )
   expect_true(res)
 
 
