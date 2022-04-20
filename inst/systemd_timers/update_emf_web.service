@@ -1,0 +1,6 @@
+[Unit]
+Description="Update EMF web service"
+
+[Service]
+EnvironmentFile=/home/vgranda/envvars/update_web
+ExecStart=R -e 'EMFtoolbox::update_emf_web(remote = FALSE)'
