@@ -16,7 +16,7 @@
 #' @param .con pool::pool object with the metadata database connection info
 #' @param .force logical indicating if the render shoud be forced even if
 #'   everything is up-to-date
-#' @param .dry_push logical to pass to  \code{\link{commit_push_web_repo}}
+#' @param .dry_push logical to pass to  \code{\link{commit_push_repo}}
 #'
 #' @return invisible FALSE if no changes are to be commited and prod is not
 #'   updated (unless \code{.force = TRUE}). TRUE if everything goes correctly.
@@ -54,7 +54,7 @@ update_emf_web <- function(
   usethis::ui_line()
   usethis::ui_info("Commit and push EMF web repository ({org}/{repo})")
   usethis::ui_line("-----")
-  pushed <- commit_push_web_repo(commit_message, github_pat, .dry_push)
+  pushed <- commit_push_repo(commit_message, github_pat, .dry_push)
 
   if (!pushed) {
     usethis::ui_info(
@@ -577,51 +577,6 @@ check_last_commit_for <- function(
 
   # if they are not identical, return TRUE
   usethis::ui_info('{repo} last commit is ahead of database')
-  return(invisible(TRUE))
-}
-
-#' Check git status, commit and push to the remote
-#'
-#' Check git status, commit and push to the remote
-#'
-#' This function check the active working directory git status, commit any
-#' changes and push to the remote repository
-#'
-#' @param commit_message Character with the commit message
-#' @param github_pat Character with the remote token (GitHub)
-#' @param .dry_push Logical indicating if the push to the remote repository
-#'   must be done (default, .dry_push = FALSE), or not (.dry_push = TRUE)
-#'
-#' @return Invisible FALSE if no changes are found, TRUE if changes are found,
-#'   commited and pushed
-#'
-#' @noRd
-commit_push_web_repo <- function(commit_message, github_pat, .dry_push = FALSE) {
-
-  # Commit changes, only if there is changes to commit
-  if (!nrow(gert::git_status()) > 0) {
-    usethis::ui_done("No changes made in the web repository, exiting...")
-    return(invisible(FALSE))
-  }
-
-  # if there are changes and .dry_push is TRUE, then we exit gracefully with a
-  # message and invisible TRUE (for testing purposes)
-  if (isTRUE(.dry_push)) {
-    usethis::ui_done("Changes detected, but dry push mode is ON. Exiting without pushing to GitHub repository")
-    return(invisible(TRUE))
-  }
-
-  # Commit changes
-  added <- gert::git_add('.')
-  commited <- gert::git_commit(commit_message)
-  # Push changes
-  pushed <- gert::git_push(
-    remote = 'origin',
-    ssh_key = github_pat
-  )
-
-
-  usethis::ui_done("Web repository updated (commit: {commited}).")
   return(invisible(TRUE))
 }
 

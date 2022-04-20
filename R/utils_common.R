@@ -88,3 +88,48 @@ create_folder_backup <- function(path, .envir = parent.frame()) {
   # return the temp folder path to use it later if needed
   return(fs::path(fs::dir_ls(backup_folder)))
 }
+
+#' Check git status, commit and push to the remote
+#'
+#' Check git status, commit and push to the remote
+#'
+#' This function check the active working directory git status, commit any
+#' changes and push to the remote repository
+#'
+#' @param commit_message Character with the commit message
+#' @param github_pat Character with the remote token (GitHub)
+#' @param .dry_push Logical indicating if the push to the remote repository
+#'   must be done (default, .dry_push = FALSE), or not (.dry_push = TRUE)
+#'
+#' @return Invisible FALSE if no changes are found, TRUE if changes are found,
+#'   commited and pushed
+#'
+#' @noRd
+commit_push_repo <- function(commit_message, github_pat, .dry_push = FALSE) {
+
+  # Commit changes, only if there is changes to commit
+  if (!nrow(gert::git_status()) > 0) {
+    usethis::ui_done("No changes made in the web repository, exiting...")
+    return(invisible(FALSE))
+  }
+
+  # if there are changes and .dry_push is TRUE, then we exit gracefully with a
+  # message and invisible TRUE (for testing purposes)
+  if (isTRUE(.dry_push)) {
+    usethis::ui_done("Changes detected, but dry push mode is ON. Exiting without pushing to GitHub repository")
+    return(invisible(TRUE))
+  }
+
+  # Commit changes
+  added <- gert::git_add('.')
+  commited <- gert::git_commit(commit_message)
+  # Push changes
+  pushed <- gert::git_push(
+    remote = 'origin',
+    ssh_key = github_pat
+  )
+
+
+  usethis::ui_done("Repository updated (commit: {commited}).")
+  return(invisible(TRUE))
+}

@@ -53,7 +53,7 @@ test_that("resource last commit utils work as intended", {
   clone_from_github('test_dummy_workflow', 'emf-creaf')
 
   expect_false(
-    commit_push_web_repo(
+    commit_push_repo(
       glue::glue("{Sys.time()} test commit"), Sys.getenv("GITHUB_PAT")
     )
   )
@@ -65,7 +65,7 @@ test_that("resource last commit utils work as intended", {
   writeLines(glue::glue("{Sys.time()} test commit"), "commit_test.txt")
 
   expect_true(
-    commit_push_web_repo(
+    commit_push_repo(
       glue::glue("{Sys.time()} test commit"), Sys.getenv("GITHUB_PAT")
     )
   )
@@ -76,7 +76,7 @@ test_that("resource last commit utils work as intended", {
     'test_dummy_workflow', org = 'emf-creaf', .con = emf_database
   ))
   expect_false(
-    commit_push_web_repo(
+    commit_push_repo(
       glue::glue("{Sys.time()} test commit"), Sys.getenv("GITHUB_PAT")
     )
   )
@@ -89,7 +89,7 @@ test_that("resource last commit utils work as intended", {
   writeLines(glue::glue("{Sys.time()} test commit"), "commit_test.txt")
 
   expect_true(
-    commit_push_web_repo(
+    commit_push_repo(
       glue::glue("{Sys.time()} test commit"), Sys.getenv("GITHUB_PAT"),
       .dry_push = TRUE
     )

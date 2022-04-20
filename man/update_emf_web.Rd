@@ -35,7 +35,7 @@ default to TRUE}
 \item{.force}{logical indicating if the render shoud be forced even if
 everything is up-to-date}
 
-\item{.dry_push}{logical to pass to  \code{\link{commit_push_web_repo}}}
+\item{.dry_push}{logical to pass to  \code{\link{commit_push_repo}}}
 }
 \value{
 invisible FALSE if no changes are to be commited and prod is not
