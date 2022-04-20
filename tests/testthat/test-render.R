@@ -244,23 +244,27 @@ test_that("wrapper render_resource_pages works as intended", {
 # TODO, make a test for the main function. probably we need a test_dummy_web repo
 test_that("update_emf_web works as intended", {
 
+  skip("too big, only from time to time")
+
+  # env var setup
+  withr::local_envvar(list(
+    EMF_DATABASE = "emf_metadata"
+  ))
+
+  # connecting to the database (and close it later)
+  emf_database <- metadata_db_con()
+
   # remotely
   expect_message(
     (res <- update_emf_web(
-      commit_message = glue::glue("EMFtoolbox testing ({Sys.time()})"),
-      prod_folder = "~/temporal_garbage", prod_host = Sys.getenv("PROD_HOST"),
-      prod_pass = Sys.getenv("PROD_PASS"),
       .con = emf_database, .force = FALSE, .dry_push = TRUE
     )),
-    "Connecting to remote"
+    "EMF web up-to-date"
   )
   expect_false(res)
 
   expect_message(
     (res <- update_emf_web(
-      commit_message = glue::glue("EMFtoolbox testing ({Sys.time()})"),
-      prod_folder = "~/temporal_garbage", prod_host = Sys.getenv("PROD_HOST"),
-      prod_pass = Sys.getenv("PROD_PASS"),
       .con = emf_database, .force = TRUE, .dry_push = TRUE
     )),
     "Connecting to remote"
@@ -270,16 +274,16 @@ test_that("update_emf_web works as intended", {
   # locally
   expect_message(
     (res <- update_emf_web(
-      prod_folder = "~/temporal_garbage",
+      remote = FALSE,
       .con = emf_database, .force = FALSE, .dry_push = TRUE
     )),
-    "Copying locally to"
+    "EMF web up-to-date"
   )
   expect_false(res)
 
   expect_message(
     (res <- update_emf_web(
-      prod_folder = "~/temporal_garbage",
+      remote = FALSE,
       .con = emf_database, .force = TRUE, .dry_push = TRUE
     )),
     "Copying locally to"

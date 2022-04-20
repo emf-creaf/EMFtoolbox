@@ -57,11 +57,12 @@ update_emf_web <- function(
   pushed <- commit_push_web_repo(commit_message, github_pat, .dry_push)
 
   if (!pushed) {
-    usethis::ui_done(
+    usethis::ui_info(
       "No changes detected, web repository ({org}/{repo}) up-to-date"
     )
     # if no force, exit gracefully
     if (!.force) {
+      usethis::ui_done("EMF web up-to-date, not updating and exiting.")
       return(invisible(FALSE))
     }
   }
@@ -606,7 +607,7 @@ commit_push_web_repo <- function(commit_message, github_pat, .dry_push = FALSE) 
   # if there are changes and .dry_push is TRUE, then we exit gracefully with a
   # message and invisible TRUE (for testing purposes)
   if (isTRUE(.dry_push)) {
-    usethis::ui_done("Changes detected, but dry push mode is ON. Exiting without pushing to the remote repository")
+    usethis::ui_done("Changes detected, but dry push mode is ON. Exiting without pushing to GitHub repository")
     return(invisible(TRUE))
   }
 
