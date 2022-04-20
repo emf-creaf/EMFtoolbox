@@ -163,6 +163,8 @@ test_that("render metadata for models and data works as intended", {
     )
   )
 
+  # as web path is an empty temp folder, we expect the render to occur as
+  # there is no index.md
   expect_message(
     render_metadata(
       'test_dummy_model', 'creaf_model',
@@ -171,6 +173,7 @@ test_that("render metadata for models and data works as intended", {
     "written succesfully"
   )
 
+  # now there is index.md, so the render should stop before doing anything
   expect_message(
     render_metadata(
       'test_dummy_model', 'creaf_model',
@@ -179,6 +182,7 @@ test_that("render metadata for models and data works as intended", {
     "Nothing to render, finishing..."
   )
 
+  # if we force we get again to write
   expect_message(
     (rendered <- render_metadata(
       'test_dummy_model', 'creaf_model',
@@ -186,7 +190,8 @@ test_that("render metadata for models and data works as intended", {
     )),
     "written succesfully"
   )
-  # is false because the last commit in the db is not ahead
+  # is false because the last commit in the db is not ahead, but the writing
+  # was forced
   expect_false(rendered$test_dummy_model)
 
   expect_true(
