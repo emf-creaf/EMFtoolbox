@@ -59,6 +59,7 @@ resource_project_generator <- function(resource = c('workflow', 'tech_doc', 'dat
     date = as.character(Sys.Date()),
     date_lastmod = as.character(Sys.Date()),
     authors = list('vgranda', 'mr_dummy', 'emf', 'rmolowni', 'mcaceres'),
+    authors_aff = list("CREAF", "Dummy Uni", "CREAF", "CREAF", "CREAF"),
     resource_link = glue::glue("{resource}s/dummy_{resource}"),
     thematic = 'dummy',
     tags = c('dummy', 'tururu', 'larara'),

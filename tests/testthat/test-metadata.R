@@ -84,6 +84,7 @@ test_that("metadata collection helpers work properly", {
   expect_identical(metadata_yml$emf_type, 'workflow')
   expect_false(metadata_yml$emf_draft)
   expect_identical(metadata_yml$authors, c('vgranda', 'mr_dummy', 'emf', 'rmolowni', 'mcaceres'))
+  expect_identical(metadata_yml$authors_aff, c("CREAF", "Dummy Uni", "CREAF", "CREAF", "CREAF"))
   expect_identical(metadata_yml$resource_link, 'workflows/dummy_workflow')
   expect_identical(metadata_yml$links$url_doi, 'example.com')
   expect_identical(metadata_yml$thematic, 'dummy')
@@ -112,6 +113,7 @@ test_that("metadata collection helpers work properly", {
   )
   purrr::map(.x = update_tables_list, .f = expect_s3_class, class = 'tbl_df')
   purrr::map(.x = update_tables_list, .f = ~ expect_true(nrow(.x) > 0))
+  expect_true(nrow(update_tables_list$resources_update_table) == 1)
 
   # comparing tables
   expect_type(
