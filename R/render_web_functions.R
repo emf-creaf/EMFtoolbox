@@ -328,13 +328,15 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
     .force <- TRUE
   }
 
-  # create a backup
-  dest_backup <- create_folder_backup(dest)
 
   # render the fragment, only if force is TRUE
   if (!.force) {
+    usethis::ui_done("Nothing to render, finishing...")
     return(invisible(FALSE))
   }
+
+  # create a backup
+  # dest_backup <- create_folder_backup(dest)
 
   # now we can render
   # clone and go to folder
@@ -470,8 +472,18 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
     .force <- TRUE
   }
 
+  # destination folder check
+  if (any(
+    !fs::file_exists(
+      fs::path(.web_path, "content", plural_type, metadata_table[[1]])
+    )
+  )) {
+    .force <- TRUE
+  }
+
   # render the fragment, only if force is TRUE
   if (!.force) {
+    usethis::ui_done("Nothing to render, finishing...")
     return(invisible(FALSE))
   }
 

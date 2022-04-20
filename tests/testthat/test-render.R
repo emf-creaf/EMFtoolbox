@@ -1,22 +1,19 @@
 # renders tests
 
-temp_web <- emf_temp_folder()
-
-withr::local_envvar(list(
-  EMF_DATABASE = "emf_metadata_dummy",
-  WEB_PATH = temp_web,
-  PROD_FOLDER = "~/temporal_garbage"
-))
-
-# connecting to the database (and close it later)
-emf_database <- metadata_db_con()
-
-
 # render utils work as intended -------------------------------------------
 
 test_that("resource last commit utils work as intended", {
 
-  # expect_true(TRUE)
+  temp_web <- emf_temp_folder()
+
+  withr::local_envvar(list(
+    EMF_DATABASE = "emf_metadata_dummy",
+    WEB_PATH = temp_web,
+    PROD_FOLDER = "~/temporal_garbage"
+  ))
+
+  # connecting to the database (and close it later)
+  emf_database <- metadata_db_con()
 
   # check for last commits
   expect_length(
@@ -98,6 +95,18 @@ test_that("resource last commit utils work as intended", {
 })
 
 test_that("delete_page helper works", {
+
+  temp_web <- emf_temp_folder()
+
+  withr::local_envvar(list(
+    EMF_DATABASE = "emf_metadata_dummy",
+    WEB_PATH = temp_web,
+    PROD_FOLDER = "~/temporal_garbage"
+  ))
+
+  # connecting to the database (and close it later)
+  emf_database <- metadata_db_con()
+
   fs::dir_create(
     fs::path(Sys.getenv("WEB_PATH"), 'content', 'workflows', 'tururu')
   )
@@ -136,6 +145,17 @@ test_that("frontmatter and md content helpers work as intended", {
 
 test_that("render metadata for models and data works as intended", {
 
+  temp_web <- emf_temp_folder()
+
+  withr::local_envvar(list(
+    EMF_DATABASE = "emf_metadata_dummy",
+    WEB_PATH = temp_web,
+    PROD_FOLDER = "~/temporal_garbage"
+  ))
+
+  # connecting to the database (and close it later)
+  emf_database <- metadata_db_con()
+
   expect_false(
     render_metadata(
       character(), 'creaf_model',
@@ -143,11 +163,20 @@ test_that("render metadata for models and data works as intended", {
     )
   )
 
-  expect_false(
+  expect_message(
     render_metadata(
       'test_dummy_model', 'creaf_model',
       .con = emf_database, .web_path = Sys.getenv("WEB_PATH"), .force = FALSE
-    )
+    ),
+    "written succesfully"
+  )
+
+  expect_message(
+    render_metadata(
+      'test_dummy_model', 'creaf_model',
+      .con = emf_database, .web_path = Sys.getenv("WEB_PATH"), .force = FALSE
+    ),
+    "Nothing to render, finishing..."
   )
 
   expect_message(
@@ -170,6 +199,17 @@ test_that("render metadata for models and data works as intended", {
 
 test_that("render_rmd for other resources (workflows, tech_docs, softworks) works as intended", {
 
+  temp_web <- emf_temp_folder()
+
+  withr::local_envvar(list(
+    EMF_DATABASE = "emf_metadata_dummy",
+    WEB_PATH = temp_web,
+    PROD_FOLDER = "~/temporal_garbage"
+  ))
+
+  # connecting to the database (and close it later)
+  emf_database <- metadata_db_con()
+
   expect_false(
     render_rmd(
       character(), 'workflow',
@@ -177,11 +217,20 @@ test_that("render_rmd for other resources (workflows, tech_docs, softworks) work
     )
   )
 
-  expect_false(
+  expect_message(
     render_rmd(
       'test_dummy_workflow', 'workflow',
       .con = emf_database, .web_path = Sys.getenv("WEB_PATH"), .force = FALSE
-    )
+    ),
+    "written succesfully"
+  )
+
+  expect_message(
+    render_rmd(
+      'test_dummy_workflow', 'workflow',
+      .con = emf_database, .web_path = Sys.getenv("WEB_PATH"), .force = FALSE
+    ),
+    "Nothing to render, finishing..."
   )
 
   expect_message(
@@ -215,6 +264,17 @@ test_that("render_rmd for other resources (workflows, tech_docs, softworks) work
 
 test_that("wrapper render_resource_pages works as intended", {
 
+  temp_web <- emf_temp_folder()
+
+  withr::local_envvar(list(
+    EMF_DATABASE = "emf_metadata_dummy",
+    WEB_PATH = temp_web,
+    PROD_FOLDER = "~/temporal_garbage"
+  ))
+
+  # connecting to the database (and close it later)
+  emf_database <- metadata_db_con()
+
   expect_type(
     (rendered <- render_resource_pages(.con = emf_database)),
     'list'
@@ -234,7 +294,10 @@ test_that("wrapper render_resource_pages works as intended", {
     rendered,
     c("workflows", "tech_docs", "softworks", "creaf_models", "external_models", "creaf_data", "external_data")
   )
+
   expect_false(purrr::flatten(rendered) %>% purrr::flatten_lgl() %>% any())
+  # expect_identical(rendered, c(TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE))
+  # expect_true(purrr::flatten(rendered) %>% purrr::flatten_lgl() %>% all())
 
 
 })
@@ -248,7 +311,8 @@ test_that("update_emf_web works as intended", {
 
   # env var setup
   withr::local_envvar(list(
-    EMF_DATABASE = "emf_metadata"
+    EMF_DATABASE = "emf_metadata",
+    PROD_FOLDER = "~/temporal_garbage"
   ))
 
   # connecting to the database (and close it later)

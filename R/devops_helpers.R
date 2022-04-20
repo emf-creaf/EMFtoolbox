@@ -43,7 +43,7 @@ update_metadata_collection_ga <- function(
 #'
 #' @param repo character with repo name
 #' @param org character with org name
-#' @param ga_action
+#' @param ga_action character with ga_action to update
 #' @param .github_pat GitHub PAT
 #' @param .dry_push logical indicating if the push should be done
 #'
