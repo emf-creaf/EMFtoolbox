@@ -1,3 +1,116 @@
+# Web updating ------------------------------------------------------------
+
+#' Update web repository
+#'
+#' Update web repository with new/modified content
+#'
+#' This function clone the latest commit from the remote web repository (GitHub)
+#' and render all pages that need update (\code{\link{render_resource_pages}}).
+#' After that if any changes have been made, it updates the web repository with
+#' the changes. After updating the repository, production server is updated.
+#'
+#' @param repo character with repo name
+#' @param org character with organization/user name
+#' @param commit_message Character with the commit message
+#' @param github_pat Character wiht the remote token (GitHub)
+#' @param remote logical indicating if executing from outside prod server,
+#'   default to TRUE
+#' @param .con pool::pool object with the metadata database connection info
+#' @param .force logical indicating if the render shoud be forced even if
+#'   everything is up-to-date
+#' @param .dry_push logical to pass to  \code{\link{commit_push_repo}}
+#'
+#' @return invisible FALSE if no changes are to be commited and prod is not
+#'   updated (unless \code{.force = TRUE}). TRUE if everything goes correctly.
+#'
+#' @export
+update_emf_web <- function(
+    repo = "emf_web", org = "emf-creaf",
+    commit_message = glue::glue("{Sys.time()} automatic update"),
+    github_pat = Sys.getenv("GITHUB_PAT"),
+    remote = TRUE,
+    prod_folder = Sys.getenv("PROD_FOLDER"),
+    prod_host = Sys.getenv("PROD_HOST"),
+    prod_pass = Sys.getenv("PROD_PASS"),
+    .con = NULL, .force = FALSE, .dry_push = FALSE
+) {
+  # pretty print
+  usethis::ui_line()
+  usethis::ui_info("Updating EMF web")
+  usethis::ui_line("-----")
+
+  # Clone the web repo
+  repo_web_dir <- clone_from_github(repo = repo, org = org)
+
+  # Render all pages
+  # pretty print
+  usethis::ui_line()
+  usethis::ui_info("Render pages")
+  usethis::ui_line("-----")
+  rendered_pages <- render_resource_pages(
+    .con = .con, .force = .force, .web_path = repo_web_dir
+  )
+  rendered_summary(rendered_pages)
+
+  # pretty print
+  usethis::ui_line()
+  usethis::ui_info("Commit and push EMF web repository ({org}/{repo})")
+  usethis::ui_line("-----")
+  pushed <- commit_push_repo(commit_message, github_pat, .dry_push)
+
+  if (!pushed) {
+    usethis::ui_info(
+      "No changes detected, web repository ({org}/{repo}) up-to-date"
+    )
+    # if no force, exit gracefully
+    if (!.force) {
+      usethis::ui_done("EMF web up-to-date, not updating and exiting.")
+      return(invisible(FALSE))
+    }
+  }
+
+  # pretty print
+  usethis::ui_line()
+  usethis::ui_info("Copy to production")
+  usethis::ui_line("-----")
+
+  # if remote, connect to the server by ssh and execute the command in the
+  # server. If not remote, execute the function here
+  prod_output <- NA
+
+  if (remote) {
+
+    usethis::ui_info("Connecting to remote server at {prod_host}")
+    # connect to the server
+    prod_session <- ssh::ssh_connect(host = prod_host, passwd = prod_pass)
+    withr::defer(ssh::ssh_disconnect(prod_session))
+
+    # execute command
+    prod_output <- ssh::ssh_exec_internal(
+      prod_session,
+      glue::glue("R -e 'EMFtoolbox::copy_emf_web(dest = \"{prod_folder}\")'")
+    )
+
+    cat(rawToChar(prod_output$stderr))
+
+  } else {
+    usethis::ui_info("Copying locally to {prod_folder}")
+    prod_output <- copy_emf_web(dest = prod_folder)
+  }
+
+  if (is_na_or_null(prod_output)) {
+    usethis::ui_oops("Something went wrong, check the outputs")
+    return(invisible(FALSE))
+  }
+
+  usethis::ui_done("Web in production updated!!!")
+  return(invisible(TRUE))
+}
+
+
+# metadata collection GA remote repos update ------------------------------
+
+
 #' Update metadata collection GA for all resources
 #'
 #' Update metadata collection GA for all resources
@@ -12,9 +125,9 @@
 #' @param .dry_push logical indicating if commit changes must be hold from pushing
 #' @param .github_pat GitHub PAT
 #'
-#' @return Data frame with the resources repo info and the update status
+#' @return Named list with the resources and the update status
 #'
-#' @noRd
+#' @export
 update_metadata_collection_ga <- function(
     .con = NULL,
     .dry_push = TRUE,
@@ -27,10 +140,13 @@ update_metadata_collection_ga <- function(
   }
 
   # get the dataframe with the repos info
-  updated <- resource_repositories_info(.con) %>%
+  resources_info <- resource_repositories_info(.con)
+  updated <- resources_info %>%
     dplyr::mutate(.dry_push = .dry_push, .github_path = .github_path) %>%
     purrr::pmap(update_repo_ga) %>%
-    magrittr::set_names(., resource_repositories_info(.con)$repo)
+    magrittr::set_names(., resources_info$repo)
+
+  return(updated)
 }
 
 
