@@ -1,10 +1,28 @@
-# use_metadata_yml
-
+# setup
 withr::local_envvar(list(
-  EMF_DATABASE = "emf_metadata_dummy",
-  WEB_PATH = "/home/malditobarbudo/data/CREAF/projects/emf/emf_web/emf_hugo_theme_site_example"
+  EMF_DATABASE = "emf_metadata_dummy"
 ))
 
+# connecting to the database (and close it later)
+emf_database <- metadata_db_con()
+
+# deferring the db cleaning
+# When we finish the unit test, we remove the dummy resource from the db
+withr::defer(
+  purrr::walk(
+    c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork'),
+    delete_resource_from_db, con = emf_database
+  )
+)
+# And also, we need to remove the dummy fields from the resources table
+withr::defer(
+  purrr::walk(
+    c('workflow', 'tech_doc', 'model', 'data', 'softwork'),
+    ~ remove_dummy_columns(emf_database, .x)
+  )
+)
+
+# use_metadata_yml
 test_that("use_metadata_yml works as expected", {
   # class
   expect_s3_class(suppressMessages(use_metadata_yml()), 'yml')
@@ -45,25 +63,6 @@ test_that("files are created correctly", {
   expect_identical(metadata_yml$links$url_doi, '')
   expect_true(metadata_yml$emf_draft)
 })
-
-# connecting to the database (and close it later)
-emf_database <- metadata_db_con()
-
-# deferring the db cleaning
-# When we finish the unit test, we remove the dummy resource from the db
-withr::defer(
-  purrr::walk(
-    c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork'),
-    delete_resource_from_db, con = emf_database
-  )
-)
-# And also, we need to remove the dummy fields from the resources table
-withr::defer(
-  purrr::walk(
-    c('workflow', 'tech_doc', 'model', 'data', 'softwork'),
-    ~ remove_dummy_columns(emf_database, .x)
-  )
-)
 
 test_that("metadata collection helpers work properly", {
 
