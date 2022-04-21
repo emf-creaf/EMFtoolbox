@@ -109,7 +109,7 @@ commit_push_repo <- function(commit_message, github_pat, .dry_push = FALSE) {
 
   # Commit changes, only if there is changes to commit
   if (!nrow(gert::git_status()) > 0) {
-    usethis::ui_done("No changes made in the web repository, exiting...")
+    usethis::ui_done("No changes made in the repository, exiting...")
     return(invisible(FALSE))
   }
 
