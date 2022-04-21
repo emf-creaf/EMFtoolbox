@@ -278,7 +278,20 @@ collect_metadata_creaf <- function(con = NULL, .dry = TRUE) {
 }
 
 
-# Read the metadata.yml file in the project.
+#' Read the metadata.yml file in the project
+#'
+#' Load yml from file or metadata tibbles
+#'
+#' This function takes a \code{yml} file or a metadata tibble and converts it
+#' to an \code{\link[ymlthis]{yml}} object
+#'
+#' @param yml_file If a character, is interpreted as a path to a file containing
+#'   the metadata in yml format. If a tibble, is interpreted as a tibble
+#'   containing the metadata fields (external resources have this)
+#'
+#' @return An \code{\link[ymlthis]{yml}} object with the metadata
+#'
+#' @noRd
 read_metadata_file <- function(yml_file = './metadata.yml') {
 
   if(is.character(yml_file)) {
@@ -294,7 +307,17 @@ read_metadata_file <- function(yml_file = './metadata.yml') {
 
 }
 
-# Prepare the update tables
+#' Prepare the update tables
+#'
+#' Build the tables for updating the metadata database based on the yml metadata
+#'
+#' Build and prepare the updated values for the db tables
+#'
+#' @param metadata_yml \code{yml} object with the resource metadata
+#'
+#' @return a named list of tibbles with update tables
+#'
+#' @noRd
 prepare_update_metadata_tables <- function(metadata_yml) {
 
   # prepare the updating tables
@@ -351,7 +374,27 @@ prepare_update_metadata_tables <- function(metadata_yml) {
   return(update_tables_list)
 }
 
-# Check if updated and database are the same
+#' Check if updated and database are the same
+#'
+#' Compare the update list with the tables in the db for a given resource
+#'
+#' This function takes a list of tibbles as the one returned by
+#' \code{\link{prepare_update_metadata_tables}} and compare those tables with
+#' the ones present in the database.
+#'
+#' @param update_tables_list A list of tibbles as the one returned by
+#'   \code{\link{prepare_update_metadata_tables}}
+#' @param con database connection
+#' @param resource_id ID of the resource to compare tables for
+#'
+#' @return A list with three elements, \code{valid_update_list}  a logical vector
+#'   with the tables that need update (differences are found).
+#'   \code{resource_columns_to_add} with names of columns that need to be added
+#'   to the db (new metadata fields).
+#'   \code{resource_columns_to_add_type} with type of columns that need to be added
+#'   to the db (new metadata fields).
+#'
+#' @noRd
 compare_metadata_tables <- function(update_tables_list, con, resource_id) {
 
   # check if the new data is the same as the old data
@@ -405,6 +448,22 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
   return(res)
 }
 
+#' Build and execute the update metadata queries
+#'
+#' Build queries to upsert, remove and update the metadata for a given resource
+#'
+#' This function build the queries, execute them, and if something goes wrong,
+#' go back to the previous values
+#'
+#' @param update_tables_list A list of tibbles as the one returned by
+#'   \code{\link{prepare_update_metadata_tables}}
+#' @param update_info A list returned by \code{\link{compare_metadata_tables}}
+#' @param con db connection
+#' @param metadata_yml \code{yml} object with the resource metadata
+#'
+#' @return invisible TRUE if everything goes right
+#'
+#' @noRd
 update_metadata_queries <- function(update_tables_list, update_info, con, metadata_yml) {
   # First of all, create a backup of the actual tables for the resource at hand
   # backup tables
@@ -564,11 +623,12 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
   final_check <- compare_metadata_tables(update_tables_list, con, resource_id)$valid_update_list
 
   if (any(final_check)) {
+    # delete_resource_from_db(resource_id, con)
+    restore_resource_from_backup(backup_tables_list, resource_id, con)
+
     usethis::ui_stop(
       "Something happened when updating the database. Restoring {resource_id} to the previous state."
     )
-    # delete_resource_from_db(resource_id, con)
-    restore_resource_from_backup(backup_tables_list, resource_id, con)
   }
 
   return(invisible(TRUE))
@@ -578,6 +638,7 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
 #'
 #' @param backup_list list with the tables for backup
 #' @param resource_id character with the resource id to restore
+#' @param con db connection
 #'
 #' @return invisible TRUE if success, error if not
 #'
@@ -692,6 +753,15 @@ delete_resource_from_db <- function(resource_id, con = NULL) {
 
 }
 
+#' Translate R types to SQL types
+#'
+#' Translate R types to SQL types
+#'
+#' @param types character vector with types
+#'
+#' @return character vector of same length as \code{types} with the SQL types
+#'
+#' @noRd
 translate_r2sql_types <- function(types) {
   dplyr::case_when(
     types == 'character' ~ 'TEXT',
@@ -702,6 +772,26 @@ translate_r2sql_types <- function(types) {
   )
 }
 
+#' Connect to the EMF metadata database
+#'
+#' Pool connection to the EMF metadata database
+#'
+#' This function returns a pool object with a connection to the postgreSQL
+#' metadata database. It also defers (\code{\link[withr]{defer}}) the pool
+#' closing to the parent environment by default.
+#' The connection params default to environment variables, set these with
+#' \code{Sys.setenv} or \code{withr::with_envvar}, or with an \code{.Renviron}
+#' file.
+#'
+#' @param host db host address/name to resolve
+#' @param user db user
+#' @param password db user password
+#' @param dbname db name to connect
+#' @param .envir environment in which the defer call takes place
+#'
+#' @return A \code{pool} object with the database connection
+#'
+#' @export
 metadata_db_con <- function(
   host = Sys.getenv('EMF_DATABASE_HOST'),
   user = Sys.getenv('EMF_DATABASE_USER'),
