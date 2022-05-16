@@ -646,9 +646,17 @@ md_content_generator <- function(resource_metadata, .external = FALSE) {
 #'
 #' @noRd
 pq__text_to_vector_parser <- function(pq__text) {
-  stringr::str_remove_all(pq__text, '[{}\"]') %>%
+
+  res <- stringr::str_remove_all(pq__text, '[{}\"]') %>%
     stringr::str_split(',') %>%
     purrr::flatten_chr()
+
+  # if length of the pq__text is one (i.e. one author), then convert to list
+  if (length(res) < 2) {
+    return(list(res))
+  }
+
+  return(res)
 }
 
 #' Get resource last commit in the database
