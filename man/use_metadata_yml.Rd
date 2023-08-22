@@ -46,22 +46,22 @@ resource
 }
 \section{Functions}{
 \itemize{
-\item \code{use_workflow_yml}: Equivalent to using \code{use_metadata_yml} with
+\item \code{use_workflow_yml()}: Equivalent to using \code{use_metadata_yml} with
 \code{.template = system.file('metadata_templates', 'workflow.yml', package = 'EMFtoolbox')}
 
-\item \code{use_tech_doc_yml}: Equivalent to using \code{use_metadata_yml} with
+\item \code{use_tech_doc_yml()}: Equivalent to using \code{use_metadata_yml} with
 \code{.template = system.file('metadata_templates', 'tech_doc.yml', package = 'EMFtoolbox')}
 
-\item \code{use_data_yml}: Equivalent to using \code{use_metadata_yml} with
+\item \code{use_data_yml()}: Equivalent to using \code{use_metadata_yml} with
 \code{.template = system.file('metadata_templates', 'data.yml', package = 'EMFtoolbox')}
 
-\item \code{use_model_yml}: Equivalent to using \code{use_metadata_yml} with
+\item \code{use_model_yml()}: Equivalent to using \code{use_metadata_yml} with
 \code{.template = system.file('metadata_templates', 'model.yml', package = 'EMFtoolbox')}
 
-\item \code{use_softwork_yml}: Equivalent to using \code{use_metadata_yml} with
+\item \code{use_softwork_yml()}: Equivalent to using \code{use_metadata_yml} with
 \code{.template = system.file('metadata_templates', 'softwork.yml', package = 'EMFtoolbox')}
-}}
 
+}}
 \section{Templates}{
 
 The easiest way to create the metadata fields for any EMF resource is using the corresponding
