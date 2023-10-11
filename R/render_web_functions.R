@@ -244,7 +244,7 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   # render the Rmd
   rmarkdown::render(
     input = input_file,
-    output_format = rmarkdown::md_document(variant = 'markdown'),
+    output_format = rmarkdown::md_document(variant = 'gfm'),
     output_file = glue::glue("{resource}.md"),
     quiet = TRUE
   )
