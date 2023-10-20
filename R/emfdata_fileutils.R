@@ -1,6 +1,6 @@
-#' Read data from EMF data server
+#' Access data from EMF data server
 #'
-#' Get access to the files in the EMF data server
+#' Read files in the EMF data server
 #'
 #' \code{read_emfdata} can automatically detect the type of file and apply the default function
 #' for that file. Using curl connections or downloading the file is indicated by the
@@ -99,6 +99,22 @@ read_emfdata <- function(
   return(res)
 }
 
+#' @describeIn read_emfdata List available contents for the provided data path
+#' @export
+contents_emfdata <- function(
+  data_path,
+  ftps_address_port = Sys.getenv("emfdata_ftps_address_port"),
+  userpwd = Sys.getenv("emfdata_userpwd")
+){
+  # handle
+  emf_handle <- curl::new_handle(use_ssl = TRUE, userpwd = userpwd, dirlistonly = TRUE)
+  # connection piped to read lines
+  curl::curl(
+    url = paste0(ftps_address_port, data_path),
+    handle = emf_handle
+  ) |>
+    readr::read_lines()
+}
 
 #' @rdname emfdata_file_utilities
 readRDS_emfdata <- function(emfdata_base, file) {

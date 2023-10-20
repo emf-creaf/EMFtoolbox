@@ -1,4 +1,3 @@
-# read_emfdata
 test_that("read_emfdata works as intended", {
   # data for tests
   test_data_path <- "vgranda/"
@@ -96,4 +95,13 @@ test_that("read_emfdata works as intended", {
   )
   # all should be identical
   expect_identical(gpkg_down, gpkg_fun_down)
+})
+
+test_that("contents_emfdata works as intended", {
+  test_data_path <- "vgranda/"
+  test_data_path_wrong <- "non/existent/path/"
+
+  expect_type(test_res <- contents_emfdata(test_data_path), "character")
+  expect_true(length(test_res) > 0)
+  expect_error(contents_emfdata(test_data_path_wrong), "Server denied")
 })

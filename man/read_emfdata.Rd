@@ -2,7 +2,8 @@
 % Please edit documentation in R/emfdata_fileutils.R
 \name{read_emfdata}
 \alias{read_emfdata}
-\title{Read data from EMF data server}
+\alias{contents_emfdata}
+\title{Access data from EMF data server}
 \usage{
 read_emfdata(
   data_path,
@@ -13,6 +14,12 @@ read_emfdata(
   .fun = NULL,
   ...,
   .env = parent.frame()
+)
+
+contents_emfdata(
+  data_path,
+  ftps_address_port = Sys.getenv("emfdata_ftps_address_port"),
+  userpwd = Sys.getenv("emfdata_userpwd")
 )
 }
 \arguments{
@@ -38,7 +45,7 @@ For a comprehensible list of default functions see Details.}
 \code{Sys.getenv("emfdata_ftps_address_port")}.}
 }
 \description{
-Get access to the files in the EMF data server
+Read files in the EMF data server
 }
 \details{
 \code{read_emfdata} can automatically detect the type of file and apply the default function
@@ -46,6 +53,11 @@ for that file. Using curl connections or downloading the file is indicated by th
 \code{download_tmp} argument, by default FALSE. Extra arguments for reading function can be
 supplied.
 }
+\section{Functions}{
+\itemize{
+\item \code{contents_emfdata()}: List available contents for the provided data path
+
+}}
 \section{Default functions}{
 
 If no \code{.fun} is supplied, \code{read_emfdata} will try to match a default function with
