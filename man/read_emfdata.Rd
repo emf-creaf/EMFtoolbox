@@ -3,6 +3,7 @@
 \name{read_emfdata}
 \alias{read_emfdata}
 \alias{contents_emfdata}
+\alias{save_emfdata}
 \title{Access data from EMF data server}
 \usage{
 read_emfdata(
@@ -11,6 +12,7 @@ read_emfdata(
   ftps_address_port = Sys.getenv("emfdata_ftps_address_port"),
   userpwd = Sys.getenv("emfdata_userpwd"),
   download_tmp = FALSE,
+  noread = FALSE,
   .fun = NULL,
   ...,
   .env = parent.frame()
@@ -18,6 +20,14 @@ read_emfdata(
 
 contents_emfdata(
   data_path,
+  ftps_address_port = Sys.getenv("emfdata_ftps_address_port"),
+  userpwd = Sys.getenv("emfdata_userpwd")
+)
+
+save_emfdata(
+  x,
+  data_path,
+  output_file,
   ftps_address_port = Sys.getenv("emfdata_ftps_address_port"),
   userpwd = Sys.getenv("emfdata_userpwd")
 )
@@ -31,7 +41,11 @@ contents_emfdata(
 \code{Sys.getenv("emfdata_userpwd")}.}
 
 \item{download_tmp}{Logical indicating if the file should be downloaded in a temporal file
-before applying \code{.fun} or treated as a curl connection. Defaults to \code{FALSE}.}
+before applying \code{.fun} instead of being treated as a curl connection by \code{.fun}.
+Defaults to \code{FALSE}.}
+
+\item{noread}{Logical indicating if the file should be downloaded only and no attempt to read it
+should be done. Defaults to \code{FALSE}. Only used if \code{download_tmp} is TRUE.}
 
 \item{.fun}{Function to read the connection (or file if \code{download_tmp}) is TRUE. If no
 function is supplied, \code{read_emfdata} will try default ones based on the file extension.
@@ -40,6 +54,12 @@ For a comprehensible list of default functions see Details.}
 \item{...}{Extra arguments for \code{.fun}}
 
 \item{.env}{Environment to load the data in, if loading RData files}
+
+\item{x}{\code{x} can be either an object or a character vector of length one with a path to a
+local file. If \code{x} is an object, then it will be saved as an \code{rds} file with
+\code{\link[base]{saveRDS}}. If \code{x} is a path, then the file is uploaded as is.}
+
+\item{output_file}{character indicating the name of the output file in the EMF data server}
 
 \item{ftps_addres_port}{Address and port (in the form "protocol://address:port/"). Defaults to
 \code{Sys.getenv("emfdata_ftps_address_port")}.}
@@ -56,6 +76,8 @@ supplied.
 \section{Functions}{
 \itemize{
 \item \code{contents_emfdata()}: List available contents for the provided data path
+
+\item \code{save_emfdata()}: Save files to the EMF data server
 
 }}
 \section{Default functions}{

@@ -16,6 +16,9 @@ test_that("read_emfdata works as intended", {
     read_emfdata(test_data_path, test_file, download_tmp = ""), "Check arguments"
   )
   expect_error(
+    read_emfdata(test_data_path, test_file, noread = ""), "Check arguments"
+  )
+  expect_error(
     read_emfdata(test_data_path, test_file, .fun = ""), "Check arguments"
   )
 
@@ -95,13 +98,58 @@ test_that("read_emfdata works as intended", {
   )
   # all should be identical
   expect_identical(gpkg_down, gpkg_fun_down)
+
+  # download only
+  expect_type(
+    gpkg_noread <- read_emfdata(test_data_path, test_file, download_tmp = TRUE, noread = TRUE),
+    "character"
+  )
+  expect_true(fs::file_exists(gpkg_noread))
+  expect_identical(gpkg_down, sf::read_sf(gpkg_noread))
 })
 
 test_that("contents_emfdata works as intended", {
   test_data_path <- "vgranda/"
   test_data_path_wrong <- "non/existent/path/"
 
+  # assertions
+  expect_error(contents_emfdata(25), "Check arguments")
+  expect_error(
+    contents_emfdata(test_data_path, ftps_address_port = ""), "Check arguments"
+  )
+  expect_error(
+    contents_emfdata(test_data_path, userpwd = ""), "Check arguments"
+  )
+
   expect_type(test_res <- contents_emfdata(test_data_path), "character")
   expect_true(length(test_res) > 0)
   expect_error(contents_emfdata(test_data_path_wrong), "Server denied")
+})
+
+test_that("save_emfdata works as intended", {
+
+  test_x <- iris
+  test_file_output <- "iris_EMFtoolbox_test.rds"
+  test_data_path <- "vgranda/test/"
+
+  # assertions
+  expect_error(save_emfdata(test_x, 25, test_file_output), "Check arguments")
+  expect_error(save_emfdata(test_x, test_data_path, 25), "Check arguments")
+  expect_error(
+    save_emfdata(test_x, test_data_path, test_file_output, ftps_address_port = ""),
+    "Check arguments"
+  )
+  expect_error(
+    save_emfdata(test_x, test_data_path, test_file_output, userpwd = ""),
+    "Check arguments"
+  )
+
+  expect_true(save_emfdata(test_x, test_data_path, test_file_output))
+  expect_true("iris_EMFtoolbox_test.rds" %in% contents_emfdata(test_data_path))
+
+  test_file_output <- "iris_EMFtoolbox_test.csv"
+  test_x <- fs::path(emf_temp_folder(), test_file_output)
+  readr::write_csv(iris, file = test_x)
+  expect_true(save_emfdata(test_x, test_data_path, test_file_output))
+  expect_true("iris_EMFtoolbox_test.csv" %in% contents_emfdata(test_data_path))
 })
