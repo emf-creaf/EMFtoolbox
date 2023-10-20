@@ -1,11 +1,115 @@
+#' Read data from EMF data server
+#'
+#' Get access to the files in the EMF data server
+#'
+#' \code{read_emfdata} can automatically detect the type of file and apply the default function
+#' for that file. Using curl connections or downloading the file is indicated by the
+#' \code{download_tmp} argument, by default FALSE. Extra arguments for reading function can be
+#' supplied.
+#'
+#' @section Default functions:
+#'   If no \code{.fun} is supplied, \code{read_emfdata} will try to match a default function with
+#'   the file extension. If no match is found, the connection (or the file if \code{download_tmp}
+#'   is TRUE) are returned for the user to deal with.
+#'
+#' @section RData files:
+#'   RData files are loaded with \code{\link[base]{load}}. This means that objects contained in the
+#'   RData file will be loaded by default into the environment \code{read_emfdata} is called. The
+#'   names of the objects loaded are returned in a character vector.
+#'
+#' @param data_path base path in EMF data server
+#' @param file file name (with extension) to read
+#' @param ftps_addres_port Address and port (in the form "protocol://address:port/"). Defaults to
+#'   \code{Sys.getenv("emfdata_ftps_address_port")}.
+#' @param userpwd User and password (in the form "user:pasword"). Defaults to
+#'   \code{Sys.getenv("emfdata_userpwd")}.
+#' @param download_tmp Logical indicating if the file should be downloaded in a temporal file
+#'   before applying \code{.fun} or treated as a curl connection. Defaults to \code{FALSE}.
+#' @param .fun Function to read the connection (or file if \code{download_tmp}) is TRUE. If no
+#'   function is supplied, \code{read_emfdata} will try default ones based on the file extension.
+#'   For a comprehensible list of default functions see Details.
+#' @param ... Extra arguments for \code{.fun}
+#' @param .env Environment to load the data in, if loading RData files
+#'
+#' @export
+read_emfdata <- function(
+    data_path, file,
+    ftps_address_port = Sys.getenv("emfdata_ftps_address_port"),
+    userpwd = Sys.getenv("emfdata_userpwd"),
+    download_tmp = FALSE,
+    .fun = NULL, ...,
+    .env = parent.frame()
+) {
+
+  ## Assertions
+  assertthat::assert_that(
+    is.character(data_path), is.character(file), ftps_address_port != "", userpwd != "",
+    is.logical(download_tmp), if (!is.null(.fun)) is.function(.fun) else TRUE,
+    msg = "Check arguments, something went wrong"
+  )
+
+  ## Download?
+  # handle
+  emf_handle <- curl::new_handle(use_ssl = TRUE, userpwd = userpwd)
+  # con is a downloaded file if download TRUE or a connection if download FALSE
+  if (isTRUE(download_tmp)) {
+    # tmp file
+    tmp_file <- fs::path(emf_temp_folder(), file)
+    # tmp download
+    con <- curl::curl_download(
+      paste0(ftps_address_port, data_path, file),
+      tmp_file,
+      handle = emf_handle
+    )
+  } else {
+    # tmp connection
+    con <- curl::curl(
+      url = paste0(ftps_address_port, data_path, file),
+      handle = emf_handle
+    )
+    # always close connection, even if function errored
+    withr::defer(try(close(con), silent = TRUE))
+  }
+
+  # different things for different files, but if fun is supplied then use it directly
+  if (!is.null(.fun)) {
+    res <- .fun(con, ...)
+    return(res)
+  }
+  # if not fun is provided then, defaults
+  # extract extension
+  file_extension <- stringr::str_extract(file, "\\.[0-9a-zA-Z]+$")
+  # apply function corresponding to known extensions, if not recognized, return con (the connection
+  # or the file)
+  res <- switch(
+    file_extension,
+    ".rda" = load(con, envir = .env),
+    ".RData" = load(con, envir = .env),
+    ".Rdata" = load(con, envir = .env),
+    ".rdata" = load(con, envir = .env),
+    ".rds" = if (inherits(con, "connection")) readRDS(gzcon(con)) else readRDS(con),
+    ".RDS" = if (inherits(con, "connection")) readRDS(gzcon(con)) else readRDS(con),
+    ".Rds" = if (inherits(con, "connection")) readRDS(gzcon(con)) else readRDS(con),
+    ".csv" = readr::read_csv(con, ...),
+    ".txt" = readr::read_delim(con, ...),
+    ".gpkg" = sf::read_sf(con, ...),
+    con
+  )
+
+  return(res)
+}
+
+
 #' @rdname emfdata_file_utilities
-readRDS_emfdata<-function(emfdata_base, file) {
+readRDS_emfdata <- function(emfdata_base, file) {
   emf_handle <- curl::new_handle(
     use_ssl = TRUE,
     userpwd = Sys.getenv("emfdata_userpwd")
   )
-  con<-curl::curl(paste0("ftp://data-emf.creaf.cat:22111/", emfdata_base, file),
-                  handle = emf_handle)
+  con <- curl::curl(
+    paste0("ftp://data-emf.creaf.cat:22111/", emfdata_base, file),
+    handle = emf_handle
+  )
   obj <- readRDS(gzcon(con))
   close(con)
   return(obj)
