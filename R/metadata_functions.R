@@ -153,7 +153,8 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
 
   # if draft, dry
   if (isTRUE(metadata_yml$emf_draft)) {
-    usethis::ui_warn("This resource is in draft mode, forcing a dry metadata collection.")
+    cli::cli_alert_warning("This resource is in draft mode, forcing a dry metadata collection.")
+    # usethis::ui_warn("This resource is in draft mode, forcing a dry metadata collection.")
     .dry <- TRUE
   }
 
@@ -161,7 +162,8 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
   if (isTRUE(.dry)) {
     return(metadata_yml)
   } else {
-    usethis::ui_info("Collecting {metadata_yml$id}:\n")
+    cli::cli_alert_info("Collecting {metadata_yml$id}:\n")
+    # usethis::ui_info("Collecting {metadata_yml$id}:\n")
   }
 
   # create the connection if con = null
@@ -172,21 +174,25 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
   }
 
   # prepare the updating tables
-  usethis::ui_info("  - reading and preparing the updated tables\n")
+  cli::cli_alert_info("  - reading and preparing the updated tables\n")
+  # usethis::ui_info("  - reading and preparing the updated tables\n")
   update_tables_list <- prepare_update_metadata_tables(metadata_yml)
 
   # check if the new data is the same as the old data
   update_info <- compare_metadata_tables(update_tables_list, con, metadata_yml$id)
   valid_update_list <- update_info$valid_update_list
   if (!any(valid_update_list)) {
-    usethis::ui_done("No updates needed, exiting.")
+    cli::cli_alert_success("No updates needed, exiting.")
+    # usethis::ui_done("No updates needed, exiting.")
     return(invisible(FALSE))
   }
 
   # prepare and execute the queries to insert if don't exists or update if exists.
-  usethis::ui_info("- updating the following tables:\n")
-  names(update_tables_list[valid_update_list]) %>%
-    purrr::walk(usethis::ui_todo)
+  cli::cli_alert_info("- updating the following tables:\n")
+  # usethis::ui_info("- updating the following tables:\n")
+  cli::cli_ul(names(update_tables_list[valid_update_list]))
+  # names(update_tables_list[valid_update_list]) %>%
+  #   purrr::walk(usethis::ui_todo)
   update_metadata_queries(update_tables_list, update_info, con, metadata_yml)
 
   ## TODO this final check logic must be inside `update_metadata_queries`, and in case of error, it should
@@ -203,7 +209,8 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
   #   )
   # }
 
-  usethis::ui_done("Everything ok.")
+  cli::cli_alert_success("Everything ok.")
+  # usethis::ui_done("Everything ok.")
   return(invisible(TRUE))
 }
 
@@ -426,9 +433,17 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
       dplyr::collect()
   )
 
+  # browser()
   valid_update_list <- purrr::map2_lgl(
     update_tables_list, db_tables_list,
-    ~ dplyr::if_else(is.logical(dplyr::all_equal(.x, .y)), FALSE, TRUE)
+    # dplyr::all_equal is deprecated, I need to find a correct solution
+    # ~ dplyr::if_else(is.logical(suppressWarnings(dplyr::all_equal(.x, .y))), FALSE, TRUE)
+    # ~ dplyr::if_else(is.logical(all.equal(.x, .y)), FALSE, TRUE)
+    .f = \(update_table, db_table) {
+      update_table <- update_table[, sort(names(update_table))]
+      db_table <- db_table[, sort(names(db_table))]
+      return(dplyr::if_else(is.logical(all.equal(update_table, db_table)), FALSE, TRUE))
+    }
   )
 
   resources_columns_to_add <-
@@ -619,16 +634,20 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
 
   ## TODO: compare_metadata_tables. If something went wrong, restore the backup records
   # Now we check update went well and if not, restore the backup tables
-  usethis::ui_info("- checking if the update went well\n")
+  cli::cli_alert_info("- checking if the update went well\n")
+  # usethis::ui_info("- checking if the update went well\n")
   final_check <- compare_metadata_tables(update_tables_list, con, resource_id)$valid_update_list
 
   if (any(final_check)) {
     # delete_resource_from_db(resource_id, con)
     restore_resource_from_backup(backup_tables_list, resource_id, con)
 
-    usethis::ui_stop(
+    cli::cli_abort(
       "Something happened when updating the database. Restoring {resource_id} to the previous state."
     )
+    # usethis::ui_stop(
+    #   "Something happened when updating the database. Restoring {resource_id} to the previous state."
+    # )
   }
 
   return(invisible(TRUE))
@@ -744,11 +763,13 @@ delete_resource_from_db <- function(resource_id, con = NULL) {
   db_response <- DBI::dbExecute(con, delete_query)
   # check response
   if (db_response != 1L) {
-    usethis::ui_warn("{resource_id} can't be deleted")
+    cli::cli_alert_warning("{resource_id} can't be deleted")
+    # usethis::ui_warn("{resource_id} can't be deleted")
     return(invisible(FALSE))
   }
 
-  usethis::ui_done("{resource_id} deleted succesfully.")
+  cli::cli_alert_success("{resource_id} deleted succesfully.")
+  # usethis::ui_done("{resource_id} deleted succesfully.")
   return(invisible(TRUE))
 
 }
@@ -838,7 +859,10 @@ use_public_table <- function(
 
   # connect to database if needed
   if (is.null(.con)) {
-    usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
+    cli::cli_alert_info(
+      "Connection to the database not provided. Attempting to connect using environment variables."
+    )
+    # usethis::ui_info("Connection to the database not provided. Attempting to connect using environment variables.")
     .con <- metadata_db_con()
   }
 

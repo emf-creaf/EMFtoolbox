@@ -35,44 +35,64 @@ update_emf_web <- function(
     .con = NULL, .force = FALSE, .dry_push = FALSE
 ) {
   # pretty print
-  usethis::ui_line()
-  usethis::ui_info("Updating EMF web")
-  usethis::ui_line("-----")
+  cli::cli_alert_info(c(
+    "i" = "Updating EMF web",
+    "-----"
+  ))
+  # usethis::ui_line()
+  # usethis::ui_info("Updating EMF web")
+  # usethis::ui_line("-----")
 
   # Clone the web repo
   repo_web_dir <- clone_from_github(repo = repo, org = org)
 
   # Render all pages
   # pretty print
-  usethis::ui_line()
-  usethis::ui_info("Render pages")
-  usethis::ui_line("-----")
+  cli::cli_alert_info(c(
+    "i" = "Render pages",
+    "-----"
+  ))
+  # usethis::ui_line()
+  # usethis::ui_info("Render pages")
+  # usethis::ui_line("-----")
   rendered_pages <- render_resource_pages(
     .con = .con, .force = .force, .web_path = repo_web_dir
   )
   rendered_summary(rendered_pages)
 
   # pretty print
-  usethis::ui_line()
-  usethis::ui_info("Commit and push EMF web repository ({org}/{repo})")
-  usethis::ui_line("-----")
+  cli::cli_alert_info(c(
+    "i" = "Commit and push EMF web repository ({org}/{repo})",
+    "-----"
+  ))
+  # usethis::ui_line()
+  # usethis::ui_info("Commit and push EMF web repository ({org}/{repo})")
+  # usethis::ui_line("-----")
   pushed <- commit_push_repo(commit_message, github_pat, .dry_push)
 
   if (!pushed) {
-    usethis::ui_info(
+    cli::cli_alert_info(
       "No changes detected, web repository ({org}/{repo}) up-to-date"
     )
+    # usethis::ui_info(
+    #   "No changes detected, web repository ({org}/{repo}) up-to-date"
+    # )
     # if no force, exit gracefully
     if (!.force) {
-      usethis::ui_done("EMF web up-to-date, not updating and exiting.")
+      cli::cli_alert_success("EMF web up-to-date, not updating and exiting.")
+      # usethis::ui_done("EMF web up-to-date, not updating and exiting.")
       return(invisible(FALSE))
     }
   }
 
   # pretty print
-  usethis::ui_line()
-  usethis::ui_info("Copy to production")
-  usethis::ui_line("-----")
+  cli::cli_alert_info(c(
+    "i" = "Copy to production",
+    "-----"
+  ))
+  # usethis::ui_line()
+  # usethis::ui_info("Copy to production")
+  # usethis::ui_line("-----")
 
   # if remote, connect to the server by ssh and execute the command in the
   # server. If not remote, execute the function here
@@ -80,7 +100,8 @@ update_emf_web <- function(
 
   if (remote) {
 
-    usethis::ui_info("Connecting to remote server at {prod_host}")
+    cli::cli_alert_info("Connecting to remote server at {prod_host}")
+    # usethis::ui_info("Connecting to remote server at {prod_host}")
     # connect to the server
     prod_session <- ssh::ssh_connect(host = prod_host, passwd = prod_pass)
     withr::defer(ssh::ssh_disconnect(prod_session))
@@ -94,16 +115,19 @@ update_emf_web <- function(
     cat(rawToChar(prod_output$stderr))
 
   } else {
-    usethis::ui_info("Copying locally to {prod_folder}")
+    cli::cli_alert_info("Copying locally to {prod_folder}")
+    # usethis::ui_info("Copying locally to {prod_folder}")
     prod_output <- copy_emf_web(dest = prod_folder)
   }
 
   if (is_na_or_null(prod_output)) {
-    usethis::ui_oops("Something went wrong, check the outputs")
+    cli::cli_alert_danger("Something went wrong, check the outputs")
+    # usethis::ui_oops("Something went wrong, check the outputs")
     return(invisible(FALSE))
   }
 
-  usethis::ui_done("Web in production updated!!!")
+  cli::cli_alert_success("Web in production updated!!!")
+  # usethis::ui_done("Web in production updated!!!")
   return(invisible(TRUE))
 }
 

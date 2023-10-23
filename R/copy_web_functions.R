@@ -57,11 +57,18 @@ check_hugo_build <- function(content, public) {
   # warn about the offending folders/indexes and send the email
   if (any(length(offending_directories) > 0, length(offending_indexes) > 0)) {
     # pretty print the offending directories and the offending indexes
-    usethis::ui_warn("Some pages haven't been built correctly:")
-    usethis::ui_line("Indexes missing:")
-    usethis::ui_todo("{offending_indexes}")
-    usethis::ui_line("Directories missing:")
-    usethis::ui_todo("{offending_directories}")
+    cli::cli_alert_warning(c(
+      "!" = "Some pages haven't been built correctly",
+      "i" = "Indexes missing:",
+      "{offending_indexes}",
+      "i" = "Directories missing:",
+      "{offending_directories}"
+    ))
+    # usethis::ui_warn("Some pages haven't been built correctly:")
+    # usethis::ui_line("Indexes missing:")
+    # usethis::ui_todo("{offending_indexes}")
+    # usethis::ui_line("Directories missing:")
+    # usethis::ui_todo("{offending_directories}")
 
     # create a list compatible with email_content argument from send_error_email
     email_content <- list(
@@ -187,7 +194,8 @@ check_web_conectivity <- function() {
   status_base_url <- httr::status_code(httr::GET(base_url))
 
   if (status_base_url != 200) {
-    usethis::ui_oops("No conectivity to {base_url}")
+    cli::cli_alert_danger("No conectivity to {base_url}")
+    # usethis::ui_oops("No conectivity to {base_url}")
     return(invisible(FALSE))
   }
 
@@ -218,7 +226,8 @@ copy_emf_web <- function(dest) {
   }
 
   # build the site
-  usethis::ui_info("Building site with Hugo")
+  cli::cli_alert_info("Building site with Hugo")
+  # usethis::ui_info("Building site with Hugo")
   withr::with_options(
     list(blogdown.hugo.version = "0.92.1"), blogdown::build_site()
   )
@@ -227,7 +236,8 @@ copy_emf_web <- function(dest) {
   build_check <- check_hugo_build(content = 'content', public = 'public')
   # if the build fails, stop
   if (!build_check) {
-    usethis::ui_warn("EMF web built with errors")
+    cli::cli_alert_warning("EMF web built with errors")
+    # usethis::ui_warn("EMF web built with errors")
   }
 
   # copy the web, and if there is an error, stop
@@ -235,10 +245,12 @@ copy_emf_web <- function(dest) {
   copy_check <- copy_web(origin = 'public', dest = dest)
   # if the build fails, stop
   if (!copy_check) {
-    usethis::ui_stop("EMF web copy failed")
+    cli::cli_abort("EMF web copy failed")
+    # usethis::ui_stop("EMF web copy failed")
   }
 
   # return TRUE if everything is ok
-  usethis::ui_done("Web copied without errors")
+  cli::cli_alert_success("Web copied without errors")
+  # usethis::ui_done("Web copied without errors")
   return(invisible(TRUE))
 }

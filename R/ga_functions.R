@@ -23,12 +23,16 @@ use_emf_ga <- function(.template) {
   template_path <- system.file(fs::path('ga_templates', .template), package = 'EMFtoolbox')
 
   if (template_path == '') {
-    usethis::ui_stop("Template not found at {system.file(fs::path('ga_templates'), package = 'EMFtoolbox')}. Check available templates at that location.")
+    cli::cli_abort(
+      "Template not found at {system.file(fs::path('ga_templates'), package = 'EMFtoolbox')}. Check available templates at that location."
+    )
+    # usethis::ui_stop("Template not found at {system.file(fs::path('ga_templates'), package = 'EMFtoolbox')}. Check available templates at that location.")
   }
 
   ga_template <- base::readLines(template_path, encoding = "UTF-8", warn = FALSE)
   usethis::write_over(save_as, ga_template)
-  usethis::ui_done("Created {.template} at {usethis::ui_path(save_as)}")
+  cli::cli_alert_success("Created {.file {(.template)}} at {.path {save_as}}")
+  # usethis::ui_done("Created {.template} at {usethis::ui_path(save_as)}")
   return(invisible(TRUE))
 }
 
@@ -39,9 +43,11 @@ create_directory <- function(path) {
     return(invisible(FALSE))
   }
   else if (fs::file_exists(path)) {
-    usethis::ui_stop("{usethis::ui_path(path)} exists but is not a directory.")
+    cli::cli_abort("{.path {path}} exists but is not a directory.")
+    # usethis::ui_stop("{usethis::ui_path(path)} exists but is not a directory.")
   }
   fs::dir_create(path, recurse = TRUE)
-  usethis::ui_done("Creating {usethis::ui_path(path)}")
+  cli::cli_alert_success("Creating {.path {path}}")
+  # usethis::ui_done("Creating {usethis::ui_path(path)}")
   invisible(TRUE)
 }

@@ -15,7 +15,8 @@
 #' @export
 emf_temp_folder <- function() {
   folder_path <- tempfile(pattern = 'emf')
-  usethis::ui_info("Creating temporal folder at {usethis::ui_path(folder_path)}")
+  cli::cli_alert_info("Creating temporal folder at {.path {folder_path}}")
+  # usethis::ui_info("Creating temporal folder at {usethis::ui_path(folder_path)}")
   fs::dir_create(folder_path)
   return(folder_path)
 }
@@ -109,14 +110,18 @@ commit_push_repo <- function(commit_message, github_pat, .dry_push = FALSE) {
 
   # Commit changes, only if there is changes to commit
   if (!nrow(gert::git_status()) > 0) {
-    usethis::ui_done("No changes made in the repository, exiting...")
+    cli::cli_alert_success("No changes made in the repository, exiting...")
+    # usethis::ui_done("No changes made in the repository, exiting...")
     return(invisible(FALSE))
   }
 
   # if there are changes and .dry_push is TRUE, then we exit gracefully with a
   # message and invisible TRUE (for testing purposes)
   if (isTRUE(.dry_push)) {
-    usethis::ui_done("Changes detected, but dry push mode is ON. Exiting without pushing to GitHub repository")
+    cli::cli_alert_success(
+      "Changes detected, but dry push mode is ON. Exiting without pushing to GitHub repository"
+    )
+    # usethis::ui_done("Changes detected, but dry push mode is ON. Exiting without pushing to GitHub repository")
     return(invisible(TRUE))
   }
 
@@ -129,7 +134,7 @@ commit_push_repo <- function(commit_message, github_pat, .dry_push = FALSE) {
     ssh_key = github_pat
   )
 
-
-  usethis::ui_done("Repository updated (commit: {commited}).")
+  cli::cli_alert_success("Repository updated (commit: {commited}).")
+  # usethis::ui_done("Repository updated (commit: {commited}).")
   return(invisible(TRUE))
 }

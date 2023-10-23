@@ -133,7 +133,8 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
 
   # argument checks
   if (length(resource) < 1) {
-    usethis::ui_info("No {type} to render, skipping...")
+    cli::cli_alert_info("No {type} to render, skipping...")
+    # usethis::ui_info("No {type} to render, skipping...")
     return(invisible(FALSE))
   }
 
@@ -152,9 +153,13 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   }
 
   # pretty print
-  usethis::ui_line()
-  usethis::ui_info("Starting render of {resource} ({type})")
-  usethis::ui_line("-----")
+  cli::cli_alert_info(c(
+    "i" = "Starting render of {resource} ({type})",
+    "-----"
+  ))
+  # usethis::ui_line()
+  # usethis::ui_info("Starting render of {resource} ({type})")
+  # usethis::ui_line("-----")
 
   # get input name, dest and others, from type
   input_file <- dplyr::case_when(
@@ -182,9 +187,12 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   resource_metadata <- use_public_table(plural_type, filter_expr, .con = .con)
 
   if (nrow(resource_metadata) < 1) {
-    usethis::ui_stop(
+    cli::cli_abort(
       "{resource} not found in public {plural_type} table. Stopping creation of {resource} page"
     )
+    # usethis::ui_stop(
+    #   "{resource} not found in public {plural_type} table. Stopping creation of {resource} page"
+    # )
   }
 
   # repo info
@@ -218,14 +226,16 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   # }
 
   if (!fs::file_exists(fs::path(dest, 'index.md'))) {
-    usethis::ui_info("{usethis::ui_code('index.md')} doesn't exist, forcing render.")
+    cli::cli_alert_info(".file index.md} doesn't exist, forcing render.")
+    # usethis::ui_info("{.file index.md} doesn't exist, forcing render.")
     .force <- TRUE
   }
 
 
   # render the fragment, only if force is TRUE
   if (!.force) {
-    usethis::ui_done("Nothing to render, finishing...")
+    cli::cli_alert_success("Nothing to render, finishing...")
+    # usethis::ui_done("Nothing to render, finishing...")
     return(invisible(FALSE))
   }
 
@@ -238,7 +248,8 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
 
   # if file does not exists, it doesn't matter if should be updated or not
   if (!fs::file_exists(input_file)) {
-    usethis::ui_stop("{input_file} file not found in {resource} repository")
+    cli::cli_abort("{input_file} file not found in {resource} repository")
+    # usethis::ui_stop("{input_file} file not found in {resource} repository")
   }
 
   # render the Rmd
@@ -250,9 +261,11 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   )
 
   # copy intermediate images
-  usethis::ui_info("Copying the intermediate images needed:")
-  intermediate_images <- copy_images('.', dest, plural_type) %>%
-    purrr::walk(usethis::ui_todo)
+  cli::cli_alert_info("Copying the intermediate images needed:")
+  # usethis::ui_info("Copying the intermediate images needed:")
+  intermediate_images <- copy_images('.', dest, plural_type) #%>%
+    # purrr::walk(usethis::ui_todo)
+  cli::cli_ul(intermediate_images)
 
 
   # And now return the html file.
@@ -277,9 +290,12 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
     useBytes = TRUE
   )
 
-  usethis::ui_done(
-    "{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}"
+  cli::cli_alert_success(
+    "{.file index.md} written succesfully at {.path {dest}}"
   )
+  # usethis::ui_done(
+  #   "{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}"
+  # )
   # update last commit
   return(invisible(update_resource_last_commit_db(
     repo = repo, org = org, .con = .con
@@ -315,7 +331,8 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
 
   # argument checks
   if (length(resources) < 1) {
-    usethis::ui_info("No {type} to render, skipping...")
+    cli::cli_alert_info("No {type} to render, skipping...")
+    # usethis::ui_info("No {type} to render, skipping...")
     return(invisible(FALSE))
   }
 
@@ -377,7 +394,8 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
 
   # render the fragment, only if force is TRUE
   if (!.force) {
-    usethis::ui_done("Nothing to render, finishing...")
+    cli::cli_alert_success("Nothing to render, finishing...")
+    # usethis::ui_done("Nothing to render, finishing...")
     return(invisible(FALSE))
   }
 
@@ -387,9 +405,13 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
       .f = function(resource) {
 
         # pretty print
-        usethis::ui_line()
-        usethis::ui_info("Starting render of {resource} ({type})")
-        usethis::ui_line("-----")
+        cli::cli_alert_info(c(
+          "i" = "Starting render of {resource} ({type})",
+          "-----"
+        ))
+        # usethis::ui_line()
+        # usethis::ui_info("Starting render of {resource} ({type})")
+        # usethis::ui_line("-----")
 
         dest <- fs::path(.web_path, "content", plural_type, resource)
         create_directory(dest)
@@ -403,9 +425,11 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
         resource_metadata <- metadata_table %>%
           dplyr::filter(!!filter_expr)
 
-        usethis::ui_info("Copying the intermediate images needed:")
-        intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) %>%
-          purrr::walk(usethis::ui_todo)
+        cli::cli_alert_info("Copying the intermediate images needed:")
+        # usethis::ui_info("Copying the intermediate images needed:")
+        intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) #%>%
+          # purrr::walk(usethis::ui_todo)
+        cli::cli_ul(intermediate_images)
 
         yaml_frontmatter <- frontmatter_generator(
           resource_metadata, category, .external = external
@@ -419,9 +443,12 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
           useBytes = TRUE
         )
 
-        usethis::ui_done(
-          "{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}"
+        cli::cli_alert_success(
+          "{.file index.md} written succesfully at {.path {dest}}"
         )
+        # usethis::ui_done(
+        #   "{usethis::ui_code('index.md')} written succesfully at {usethis::ui_path(dest)}"
+        # )
         # update last commit
         return(invisible(update_resource_last_commit_db(
           repo = repo, repo_db = resource, org = org, .con = .con
@@ -478,12 +505,14 @@ check_last_commit_for <- function(
 
   # if hashes are identical, return FALSE
   if (identical(last_commit_repo, last_commit_db)) {
-    usethis::ui_info('{repo} last commit is up-to-date with database')
+    cli::cli_alert_info("{repo} last commit is up-to-date with database")
+    # usethis::ui_info('{repo} last commit is up-to-date with database')
     return(invisible(FALSE))
   }
 
   # if they are not identical, return TRUE
-  usethis::ui_info('{repo} last commit is ahead of database')
+  cli::cli_alert_info("{repo} last commit is ahead of database")
+  # usethis::ui_info('{repo} last commit is ahead of database')
   return(invisible(TRUE))
 }
 
@@ -500,19 +529,23 @@ check_last_commit_for <- function(
 #'
 #' @noRd
 rendered_summary <- function(rendered_pages) {
-  usethis::ui_line()
-  usethis::ui_info("The following pages were rendered:")
+  # usethis::ui_line()
+  # usethis::ui_info("The following pages were rendered:")
+  cli::cli_alert_info("The following pages were rendered:")
   purrr::flatten(rendered_pages) %>%
     purrr::keep(isTRUE) %>%
     names() %>%
-    purrr::walk(usethis::ui_todo)
+    # purrr::walk(usethis::ui_todo)
+    cli::cli_ul()
 
-  usethis::ui_line()
-  usethis::ui_info("The following pages were skipped:")
+  # usethis::ui_line()
+  # usethis::ui_info("The following pages were skipped:")
+  cli::cli_alert_info("The following pages were skipped:")
   purrr::flatten(rendered_pages) %>%
     purrr::keep(isFALSE) %>%
     names() %>%
-    purrr::walk(usethis::ui_todo)
+    # purrr::walk(usethis::ui_todo)
+    cli::cli_ul()
 
   return(invisible(TRUE))
 }
@@ -540,9 +573,10 @@ delete_page <- function(
     .web_path = Sys.getenv('WEB_PATH')
 ) {
   page_path <- fs::path(.web_path, 'content', resource_type, resource_id)
-  usethis::ui_info(
-    "Deleting resource page: {page_path}"
-  )
+  cli::cli_alert_info("Deleting resource page: {.path {page_path}}")
+  # usethis::ui_info(
+  #   "Deleting resource page: {page_path}"
+  # )
   fs::dir_delete(page_path)
   return(invisible(TRUE))
 }
@@ -737,11 +771,13 @@ update_resource_last_commit_db <- function(repo, repo_db = repo, org, .con, .bra
   )
 
   if (is.null(last_commit_repo)) {
-    usethis::ui_info('{repo} is no found at {org} github, skipping db update...')
+    cli::cli_alert_info("{repo} is no found at {org} github, skipping db update...")
+    # usethis::ui_info('{repo} is no found at {org} github, skipping db update...')
     return(invisible(FALSE))
   }
 
-  usethis::ui_info('{repo_db} last commit is ahead of database, updating...')
+  cli::cli_alert_info("{repo_db} last commit is ahead of database, updating...")
+  # usethis::ui_info('{repo_db} last commit is ahead of database, updating...')
   ## TODO add IF EXISTS in the delete query
   update_resource_last_commit_queries <- list(
     remove = glue::glue_sql(
@@ -754,7 +790,8 @@ update_resource_last_commit_db <- function(repo, repo_db = repo, org, .con, .bra
     )
   )
   purrr::walk(update_resource_last_commit_queries, ~ DBI::dbExecute(.con, .x))
-  usethis::ui_done("{repo_db} last commit succesfully updated")
+  cli::cli_alert_success("{repo_db} last commit succesfully updated")
+  # usethis::ui_done("{repo_db} last commit succesfully updated")
   return(invisible(TRUE))
 }
 
@@ -805,7 +842,8 @@ copy_images <- function(folder = '.', dest, category, formats = c('png', 'jpg', 
   }
 
   if (length(images_list) < 1) {
-    usethis::ui_done("No intermediate images needed")
+    cli::cli_alert_success("No intermediate images needed")
+    # usethis::ui_done("No intermediate images needed")
     return(invisible(FALSE))
   }
 
@@ -884,9 +922,8 @@ rd_postprocessing <- function(rd_fragment, intermediate_images) {
     purrr::iwalk(
       function(index, image_path) {
         image_shorthand <- glue::glue(
-          '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = TRUE) %>% dplyr::last()}" class="single-image" >}}}}'
+          '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = FALSE) |> purrr::flatten_chr() |> dplyr::last()}" class="single-image" >}}}}'
         )
-
         rd_fragment[index] <<- image_shorthand
       }
     )
