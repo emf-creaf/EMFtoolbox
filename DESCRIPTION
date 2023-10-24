@@ -1,6 +1,6 @@
 Package: EMFtoolbox
 Title: Tool Box For The EMFverse
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R: 
     person(given = "Victor",
            family = "Granda",
@@ -16,29 +16,29 @@ RoxygenNote: 7.2.3
 Depends: 
     R (>= 2.10)
 Imports: 
-    fs,
-    rmarkdown,
-    ymlthis,
-    RPostgres,
-    glue,
-    dplyr,
-    rlang,
-    purrr,
-    withr,
-    pool,
-    usethis,
+    cli,
+    crayon,
+    curl,
     DBI,
+    dbplyr,
+    dplyr,
+    fs,
+    gert,
+    glue,
+    pkgdown,
+    pool,
+    purrr,
+    readr,
+    readxl,
+    rlang,
+    rmarkdown,
+    RPostgres,
+    ssh,
     stringr,
     tibble,
-    dbplyr,
-    crayon,
-    pkgdown,
-    gert,
-    readxl,
-    ssh,
-    curl,
-    readr,
-    cli
+    usethis,
+    withr,
+    ymlthis
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
