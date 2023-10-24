@@ -301,7 +301,7 @@ test_that("wrapper render_resource_pages works as intended", {
     rendered,
     c("workflows", "tech_docs", "softworks", "creaf_models", "external_models", "creaf_data", "external_data")
   )
-  expect_false(purrr::flatten(rendered) %>% purrr::flatten_lgl() %>% any())
+  expect_false(purrr::flatten(rendered) |> purrr::flatten_lgl() |> any())
 
   expect_message(
     (rendered <- render_resource_pages(.con = emf_database, .force = TRUE)),
@@ -313,9 +313,9 @@ test_that("wrapper render_resource_pages works as intended", {
     c("workflows", "tech_docs", "softworks", "creaf_models", "external_models", "creaf_data", "external_data")
   )
 
-  expect_false(purrr::flatten(rendered) %>% purrr::flatten_lgl() %>% any())
+  expect_false(purrr::flatten(rendered) |> purrr::flatten_lgl() |> any())
   # expect_identical(rendered, c(TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE))
-  # expect_true(purrr::flatten(rendered) %>% purrr::flatten_lgl() %>% all())
+  # expect_true(purrr::flatten(rendered) |> purrr::flatten_lgl() |> all())
 
 
 })

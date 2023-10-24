@@ -145,9 +145,9 @@ copy_web <- function(origin, dest) {
   # system(paste0("cp -a ", origin, "/. ", dest))
 
   # now check that origin and dest now are the same
-  origin_folder_info <- fs::dir_info(fs::path_rel(origin, origin), recurse = TRUE) %>%
+  origin_folder_info <- fs::dir_info(fs::path_rel(origin, origin), recurse = TRUE) |>
     dplyr::select(-access_time)
-  dest_folder_info <- fs::dir_info(fs::path_rel(dest, dest), recurse = TRUE) %>%
+  dest_folder_info <- fs::dir_info(fs::path_rel(dest, dest), recurse = TRUE) |>
     dplyr::select(-access_time)
 
   identical_check <- identical(origin_folder_info, dest_folder_info)

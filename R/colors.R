@@ -25,9 +25,9 @@ resource_color <- function(resource = NULL) {
     return(resources_color_tibble)
   }
 
-  resources_color_tibble %>%
-    dplyr::filter(resource_name == resource) %>%
-    dplyr::pull(hex_color_code) %>%
+  resources_color_tibble |>
+    dplyr::filter(resource_name == resource) |>
+    dplyr::pull(hex_color_code) |>
     purrr::flatten_chr()
 
 }

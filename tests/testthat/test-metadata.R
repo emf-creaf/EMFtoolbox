@@ -131,8 +131,8 @@ test_that("metadata collection helpers work properly", {
   expect_true(update_metadata_queries(update_tables_list, update_info, emf_database, metadata_collected))
   # is redundant to check this because is done inside the function, but I'll do it anyway with the resources
   # table:
-  resources_db_updated <- dplyr::tbl(emf_database, 'resources') %>%
-    dplyr::filter(id == 'dummy_workflow') %>%
+  resources_db_updated <- dplyr::tbl(emf_database, 'resources') |>
+    dplyr::filter(id == 'dummy_workflow') |>
     dplyr::collect()
   expect_identical(metadata_collected$id, resources_db_updated$id)
   expect_identical(metadata_collected$emf_type, resources_db_updated$emf_type)
@@ -141,14 +141,14 @@ test_that("metadata collection helpers work properly", {
   expect_identical(metadata_collected$thematic, resources_db_updated$thematic)
   expect_identical(metadata_collected$dummy_workflow_field_1, resources_db_updated$dummy_workflow_field_1)
   expect_identical(metadata_collected$dummy_workflow_field_2, resources_db_updated$dummy_workflow_field_2)
-  resource_authors_db_updated <- dplyr::tbl(emf_database, 'resource_authors') %>%
-    dplyr::filter(id == 'dummy_workflow') %>%
-    dplyr::select(-resource_authors_pk) %>%
+  resource_authors_db_updated <- dplyr::tbl(emf_database, 'resource_authors') |>
+    dplyr::filter(id == 'dummy_workflow') |>
+    dplyr::select(-resource_authors_pk) |>
     dplyr::collect()
   expect_setequal(metadata_collected$authors, resource_authors_db_updated$author_id)
-  resource_tags_db_updated <- dplyr::tbl(emf_database, 'resource_tags') %>%
-    dplyr::filter(id == 'dummy_workflow') %>%
-    dplyr::select(-resource_tags_pk) %>%
+  resource_tags_db_updated <- dplyr::tbl(emf_database, 'resource_tags') |>
+    dplyr::filter(id == 'dummy_workflow') |>
+    dplyr::select(-resource_tags_pk) |>
     dplyr::collect()
   expect_setequal(metadata_collected$tags, resource_tags_db_updated$tag_id)
 
@@ -202,10 +202,10 @@ test_that("collect from softwork works", {
 test_that("updated database is correct", {
 
   expect_s3_class(
-    (resources_db <- dplyr::tbl(emf_database, 'resources') %>%
+    (resources_db <- dplyr::tbl(emf_database, 'resources') |>
        dplyr::filter(
          id %in% c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
-       ) %>%
+       ) |>
        dplyr::collect()),
     'tbl_df'
   )
@@ -228,10 +228,10 @@ test_that("updated database is correct", {
   ))
 
   expect_s3_class(
-    (tags_db <- dplyr::tbl(emf_database, 'resource_tags') %>%
+    (tags_db <- dplyr::tbl(emf_database, 'resource_tags') |>
        dplyr::filter(
          id %in% c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
-       ) %>%
+       ) |>
        dplyr::collect()),
     'tbl_df'
   )
@@ -243,10 +243,10 @@ test_that("updated database is correct", {
   expect_true(all(tags_db$tag_id %in% c('dummy', 'tururu', 'larara')))
 
   expect_s3_class(
-    (nodes_db <- dplyr::tbl(emf_database, 'nodes') %>%
+    (nodes_db <- dplyr::tbl(emf_database, 'nodes') |>
        dplyr::filter(
          id %in% c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
-       ) %>%
+       ) |>
        dplyr::collect()),
     'tbl_df'
   )
@@ -260,10 +260,10 @@ test_that("updated database is correct", {
   )))
 
   expect_s3_class(
-    (authors_db <- dplyr::tbl(emf_database, 'resource_authors') %>%
+    (authors_db <- dplyr::tbl(emf_database, 'resource_authors') |>
        dplyr::filter(
          id %in% c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
-       ) %>%
+       ) |>
        dplyr::collect()),
     'tbl_df'
   )
@@ -278,10 +278,10 @@ test_that("updated database is correct", {
   )
 
   expect_s3_class(
-    (requirements_db <- dplyr::tbl(emf_database, 'requirements') %>%
+    (requirements_db <- dplyr::tbl(emf_database, 'requirements') |>
        dplyr::filter(
          id %in% c('dummy_workflow', 'dummy_tech_doc', 'dummy_model', 'dummy_data', 'dummy_softwork')
-       ) %>%
+       ) |>
        dplyr::collect()),
     'tbl_df'
   )

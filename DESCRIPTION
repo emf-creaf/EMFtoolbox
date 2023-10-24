@@ -18,7 +18,6 @@ Depends:
 Imports: 
     fs,
     rmarkdown,
-    magrittr,
     ymlthis,
     RPostgres,
     glue,

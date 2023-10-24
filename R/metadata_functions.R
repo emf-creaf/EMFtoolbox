@@ -43,8 +43,8 @@ use_metadata_yml <- function(
   }
 
   # We need the lists converted to yml, add/modify fields and copy to the clipboard
-  metadata_yml <- initial_state %>%
-    ymlthis::yml_replace(...) %>%
+  metadata_yml <- initial_state |>
+    ymlthis::yml_replace(...) |>
     suppressMessages(ymlthis::use_yml())
 
   ## Ensure date is always set
@@ -191,7 +191,7 @@ collect_metadata <- function(con = NULL, ..., .dry = TRUE) {
   cli::cli_alert_info("- updating the following tables:\n")
   # usethis::ui_info("- updating the following tables:\n")
   cli::cli_ul(names(update_tables_list[valid_update_list]))
-  # names(update_tables_list[valid_update_list]) %>%
+  # names(update_tables_list[valid_update_list]) |>
   #   purrr::walk(usethis::ui_todo)
   update_metadata_queries(update_tables_list, update_info, con, metadata_yml)
 
@@ -248,7 +248,7 @@ collect_metadata_external <- function(external_type, con = NULL, ..., .dry = TRU
 
   # safely loop the ext_models metadata rows
   updated_external <-
-    1:nrow(external_metadata) %>%
+    1:nrow(external_metadata) |>
     purrr::map(~ safe_collect_metadata(con = con, .dry = .dry, yml_file = external_metadata[.x,]))
 
   return(purrr::map(updated_external, 'result'))
@@ -278,7 +278,7 @@ collect_metadata_creaf <- function(con = NULL, .dry = TRUE) {
   safe_collect_metadata <- purrr::safely(collect_metadata)
 
   # safely loop the folders in the respository
-  updated_creaf <- fs::dir_ls(recurse = TRUE, regexp = "metadata\\.yml$") %>%
+  updated_creaf <- fs::dir_ls(recurse = TRUE, regexp = "metadata\\.yml$") |>
     purrr::map(~ safe_collect_metadata(con = con, yml_file = .x, .dry = .dry))
 
   return(purrr::map(updated_creaf, 'result'))
@@ -302,13 +302,13 @@ collect_metadata_creaf <- function(con = NULL, .dry = TRUE) {
 read_metadata_file <- function(yml_file = './metadata.yml') {
 
   if(is.character(yml_file)) {
-    readLines(yml_file) %>%
-      glue::glue_collapse(sep = '\n') %>%
+    readLines(yml_file) |>
+      glue::glue_collapse(sep = '\n') |>
       ymlthis::as_yml()
   } else {
-    yml_file %>%
-      dplyr::mutate(tags = purrr::map(tags, ~ purrr::discard(.x, .p = is.na))) %>%
-      purrr::flatten() %>%
+    yml_file |>
+      dplyr::mutate(tags = purrr::map(tags, ~ purrr::discard(.x, .p = is.na))) |>
+      purrr::flatten() |>
       ymlthis::as_yml()
   }
 
@@ -332,7 +332,7 @@ prepare_update_metadata_tables <- function(metadata_yml) {
     resources_update_table = metadata_yml[
       !names(metadata_yml) %in%
         c('authors', 'authors_aff', 'tags', 'requirements', 'nodes', 'links')
-    ] %>%
+    ] |>
       tibble::as_tibble(),
 
     # tags_update_table = tibble::tibble(
@@ -406,30 +406,30 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
 
   # check if the new data is the same as the old data
   db_tables_list <- list(
-    resources_old_table = dplyr::tbl(con, 'resources') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::mutate(date = as.character(date), date_lastmod = as.character(date_lastmod)) %>%
-      dplyr::select(dplyr::any_of(names(update_tables_list$resources_update_table))) %>%
+    resources_old_table = dplyr::tbl(con, 'resources') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::mutate(date = as.character(date), date_lastmod = as.character(date_lastmod)) |>
+      dplyr::select(dplyr::any_of(names(update_tables_list$resources_update_table))) |>
       dplyr::collect(),
-    tags_old_table = dplyr::tbl(con, 'resource_tags') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-resource_tags_pk) %>%
+    tags_old_table = dplyr::tbl(con, 'resource_tags') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-resource_tags_pk) |>
       dplyr::collect(),
-    nodes_old_table = dplyr::tbl(con, 'nodes') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-node_pk) %>%
+    nodes_old_table = dplyr::tbl(con, 'nodes') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-node_pk) |>
       dplyr::collect(),
-    authors_old_table = dplyr::tbl(con, 'resource_authors') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-resource_authors_pk) %>%
+    authors_old_table = dplyr::tbl(con, 'resource_authors') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-resource_authors_pk) |>
       dplyr::collect(),
-    requirements_old_table = dplyr::tbl(con, 'requirements') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-requirement_pk) %>%
+    requirements_old_table = dplyr::tbl(con, 'requirements') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-requirement_pk) |>
       dplyr::collect(),
-    links_old_table = dplyr::tbl(con, 'links') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(dplyr::any_of(names(update_tables_list$links_update_table)), -link_pk) %>%
+    links_old_table = dplyr::tbl(con, 'links') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(dplyr::any_of(names(update_tables_list$links_update_table)), -link_pk) |>
       dplyr::collect()
   )
 
@@ -452,7 +452,7 @@ compare_metadata_tables <- function(update_tables_list, con, resource_id) {
     ]
 
   resources_columns_to_add_type <-
-    sapply(update_tables_list$resources_update_table, class)[resources_columns_to_add] %>%
+    sapply(update_tables_list$resources_update_table, class)[resources_columns_to_add] |>
     translate_r2sql_types()
 
   res <- list(
@@ -484,33 +484,33 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
   # backup tables
   resource_id <- metadata_yml$id
   backup_tables_list <- list(
-    resources_backup_table = dplyr::tbl(con, 'resources') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::mutate(date = as.character(date), date_lastmod = as.character(date_lastmod)) %>%
+    resources_backup_table = dplyr::tbl(con, 'resources') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::mutate(date = as.character(date), date_lastmod = as.character(date_lastmod)) |>
       dplyr::collect(),
-    tags_backup_table = dplyr::tbl(con, 'resource_tags') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-resource_tags_pk) %>%
+    tags_backup_table = dplyr::tbl(con, 'resource_tags') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-resource_tags_pk) |>
       dplyr::collect(),
-    nodes_backup_table = dplyr::tbl(con, 'nodes') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-node_pk) %>%
+    nodes_backup_table = dplyr::tbl(con, 'nodes') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-node_pk) |>
       dplyr::collect(),
-    authors_backup_table = dplyr::tbl(con, 'resource_authors') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-resource_authors_pk) %>%
+    authors_backup_table = dplyr::tbl(con, 'resource_authors') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-resource_authors_pk) |>
       dplyr::collect(),
-    requirements_backup_table = dplyr::tbl(con, 'requirements') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-requirement_pk) %>%
+    requirements_backup_table = dplyr::tbl(con, 'requirements') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-requirement_pk) |>
       dplyr::collect(),
-    links_backup_table = dplyr::tbl(con, 'links') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-link_pk) %>%
+    links_backup_table = dplyr::tbl(con, 'links') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-link_pk) |>
       dplyr::collect(),
-    commit_backup_table = dplyr::tbl(con, 'resources_last_commit') %>%
-      dplyr::filter(id == resource_id) %>%
-      dplyr::select(-hash_pk) %>%
+    commit_backup_table = dplyr::tbl(con, 'resources_last_commit') |>
+      dplyr::filter(id == resource_id) |>
+      dplyr::select(-hash_pk) |>
       dplyr::collect()
   )
 
@@ -627,7 +627,7 @@ update_metadata_queries <- function(update_tables_list, update_info, con, metada
   )
 
   # run the queries, but only for the tables that must be updated
-  c(resources_upsert_query, delete_child_tables_queries, insert_child_tables_queries)[valid_update_list] %>%
+  c(resources_upsert_query, delete_child_tables_queries, insert_child_tables_queries)[valid_update_list] |>
     purrr::walk(
       ~ DBI::dbExecute(con, .x)
     )
@@ -727,7 +727,7 @@ restore_resource_from_backup <- function(backup_list, resource_id, con) {
       ),
       .con = con
     )
-  ) %>%
+  ) |>
     purrr::walk(
       ~ DBI::dbExecute(con, .x)
     )
@@ -872,8 +872,8 @@ use_public_table <- function(
     table_name <- glue::glue("public_{resource_type}")
   }
 
-  res <- dplyr::tbl(.con, table_name) %>%
-    dplyr::filter(..., emf_public == TRUE) %>%
+  res <- dplyr::tbl(.con, table_name) |>
+    dplyr::filter(..., emf_public == TRUE) |>
     dplyr::collect()
   return(res)
 }
@@ -981,11 +981,11 @@ external_data_transform <- function(external_data_file = 'ExternalDataSources.xl
   original_table <-
     readxl::read_xlsx(path = external_data_file, sheet = 1, .name_repair = 'universal')
 
-  original_table %>%
+  original_table |>
     # remove those not external, or that dont have URL or DOI
     dplyr::filter(
       !(is.na(URLsource)) | !(is.na(DOI)), is.na(Source) | Source != "CREAF"
-    ) %>%
+    ) |>
     # create all necessary variables/metadata
     dplyr::mutate(
       # descr & title
@@ -1013,7 +1013,7 @@ external_data_transform <- function(external_data_file = 'ExternalDataSources.xl
         list(DOI, URLsource),
         .f = function(x,y) {return(list(url_doi = x, url_source = y))}
       )
-    ) %>%
+    ) |>
     dplyr::select(
       id, description, title, emf_type, emf_public, emf_automatized,
       emf_reproducible, emf_draft, emf_data_type, data_repository, tags,
@@ -1041,11 +1041,11 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
   original_table <-
     readxl::read_xlsx(path = external_models_file,sheet = 1, skip = 1, .name_repair = 'universal')
 
-  original_table %>%
+  original_table |>
     # ensure external catalog entry is logical
-    dplyr::mutate(External.catalog.entry = as.logical(External.catalog.entry)) %>%
+    dplyr::mutate(External.catalog.entry = as.logical(External.catalog.entry)) |>
     # remove those without DOI or URL, as then we have nothing to offer
-    dplyr::filter(!(is.na(URL)) | !(is.na(DOI)), External.catalog.entry) %>%
+    dplyr::filter(!(is.na(URL)) | !(is.na(DOI)), External.catalog.entry) |>
     # create all necessary variables/metadata
     dplyr::mutate(
       # id & title
@@ -1076,7 +1076,7 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
         list(DOI, URL),
         .f = function(x,y) {return(list(url_doi = x, url_source = y))}
       )
-    ) %>%
+    ) |>
     dplyr::select(
       id, description, title, emf_type, emf_public, emf_automatized,
       emf_reproducible, emf_draft, emf_data_type, model_repository, tags,

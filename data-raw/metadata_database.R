@@ -319,24 +319,24 @@ FROM resources
   )
 
   ## Execute the queries
-  create_queries_list %>%
+  create_queries_list |>
     purrr::walk(
       ~ DBI::dbExecute(emf_database, .x)
     )
 
-  indexes_queries_list %>%
+  indexes_queries_list |>
     purrr::walk(
       ~ DBI::dbExecute(emf_database, .x)
     )
 
-  create_views_list %>%
+  create_views_list |>
     purrr::walk(
       ~ DBI::dbExecute(emf_database, .x)
     )
 
   ## Updating definitions table
-  metadata_definitions <- readxl::read_excel('data-raw/metadata_table.xlsx') %>%
-    dplyr::select(-`Allowed values`, -`Example value`) %>%
+  metadata_definitions <- readxl::read_excel('data-raw/metadata_table.xlsx') |>
+    dplyr::select(-`Allowed values`, -`Example value`) |>
     dplyr::rename(
       field = Field,
       scopes = Scopes,

@@ -165,10 +165,10 @@ update_metadata_collection_ga <- function(
 
   # get the dataframe with the repos info
   resources_info <- resource_repositories_info(.con)
-  updated <- resources_info %>%
-    dplyr::mutate(.dry_push = .dry_push, .github_path = .github_path) %>%
-    purrr::pmap(update_repo_ga) %>%
-    magrittr::set_names(., resources_info$repo)
+  updated <- resources_info |>
+    dplyr::mutate(.dry_push = .dry_push, .github_path = .github_path) |>
+    purrr::pmap(update_repo_ga) |>
+    purrr::set_names(resources_info$repo)
 
   return(updated)
 }
@@ -230,30 +230,32 @@ update_repo_ga <- function(
 #' @noRd
 resource_repositories_info <- function(.con = NULL) {
 
-  workflows_repo <- public_workflows(.con = .con) %>%
+  workflows_repo <- public_workflows(.con = .con) |>
     dplyr::pull(workflow)
   workflows_org <- rep("emf-creaf", length(workflows_repo))
-  tech_docs_repo <- public_tech_docs(.con = .con) %>%
+  tech_docs_repo <- public_tech_docs(.con = .con) |>
     dplyr::pull(tech_doc)
   tech_docs_org <- rep("emf-creaf", length(tech_docs_repo))
 
-  softworks_info <- public_softworks(.con = .con) %>%
+  softworks_info <- public_softworks(.con = .con) |>
     dplyr::mutate(
       repo = dplyr::if_else(
         !is.na(url_source),
-        url_source %>%
-          stringr::str_split(pattern = '/', simplify = TRUE) %>%
-          magrittr::extract(,5),
+        url_source |>
+          stringr::str_split(pattern = '/', simplify = TRUE) |>
+          as.data.frame() |>
+          dplyr::pull(5),
         softwork
       ),
       org = dplyr::if_else(
         !is.na(url_source),
-        url_source %>%
-          stringr::str_split(pattern = '/', simplify = TRUE) %>%
-          magrittr::extract(,4),
+        url_source |>
+          stringr::str_split(pattern = '/', simplify = TRUE) |>
+          as.data.frame() |>
+          dplyr::pull(4),
         "emf-creaf"
       )
-    ) %>%
+    ) |>
     dplyr::select(softwork, repo, org)
   softworks_repo <- softworks_info$repo
   softworks_org <- softworks_info$org

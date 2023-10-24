@@ -27,30 +27,30 @@ render_resource_pages <-
       .con <- metadata_db_con()
     }
 
-    resources_table <- use_public_table('all', ..., .con = .con) %>%
+    resources_table <- use_public_table('all', ..., .con = .con) |>
       dplyr::select(id, emf_type, emf_data_type)
 
     resources_by_type <- list(
-      workflows = resources_table %>%
-        dplyr::filter(emf_type == 'workflow') %>%
+      workflows = resources_table |>
+        dplyr::filter(emf_type == 'workflow') |>
         dplyr::pull(id),
-      tech_docs = resources_table %>%
-        dplyr::filter(emf_type == 'tech_doc') %>%
+      tech_docs = resources_table |>
+        dplyr::filter(emf_type == 'tech_doc') |>
         dplyr::pull(id),
-      softworks = resources_table %>%
-        dplyr::filter(emf_type == "softwork") %>%
+      softworks = resources_table |>
+        dplyr::filter(emf_type == "softwork") |>
         dplyr::pull(id),
-      creaf_models = resources_table %>%
-        dplyr::filter(emf_type == 'model', emf_data_type == "creaf_data") %>%
+      creaf_models = resources_table |>
+        dplyr::filter(emf_type == 'model', emf_data_type == "creaf_data") |>
         dplyr::pull(id),
-      external_models = resources_table %>%
-        dplyr::filter(emf_type == 'model', emf_data_type == "external_data") %>%
+      external_models = resources_table |>
+        dplyr::filter(emf_type == 'model', emf_data_type == "external_data") |>
         dplyr::pull(id),
-      creaf_data = resources_table %>%
-        dplyr::filter(emf_type == 'data', emf_data_type == "creaf_data") %>%
+      creaf_data = resources_table |>
+        dplyr::filter(emf_type == 'data', emf_data_type == "creaf_data") |>
         dplyr::pull(id),
-      external_data = resources_table %>%
-        dplyr::filter(emf_type == 'data', emf_data_type == "external_data") %>%
+      external_data = resources_table |>
+        dplyr::filter(emf_type == 'data', emf_data_type == "external_data") |>
         dplyr::pull(id)
     )
 
@@ -142,8 +142,8 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   if (length(resource) > 1) {
     safe_fun <- purrr::possibly(render_rmd, otherwise = FALSE, quiet = FALSE)
     res <-
-      resource %>%
-      magrittr::set_names(., .) %>%
+      resource |>
+      purrr::set_names() |>
       purrr::map(
         .f = safe_fun,
         type = type, .con = .con, .force = .force, .web_path = .web_path
@@ -196,19 +196,23 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   }
 
   # repo info
-  url_source <- resource_metadata %>%
+  url_source <- resource_metadata |>
     dplyr::pull(url_source)
 
   repo <- resource
   org <- "emf-creaf"
 
   if (!is.na(url_source)) {
-    repo_info <- url_source %>%
-      stringr::str_split(pattern = '/', simplify = TRUE) %>%
-      magrittr::extract(4:5) %>%
-      magrittr::set_names(c('org', 'repo'))
-    repo <- repo_info[["repo"]]
-    org <- repo_info[["org"]]
+    # repo_info <- url_source |>
+    #   stringr::str_split(pattern = '/', simplify = TRUE) |>
+    #   magrittr::extract(4:5) |>
+    #   purrr::set_names(c('org', 'repo'))
+    # repo <- repo_info[["repo"]]
+    # org <- repo_info[["org"]]
+    repo_info <- url_source |>
+      stringr::str_split(pattern = '/', simplify = TRUE)
+    repo <- repo_info[5]
+    org <- repo_info[4]
   }
 
   # commit check
@@ -263,7 +267,7 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   # copy intermediate images
   cli::cli_alert_info("Copying the intermediate images needed:")
   # usethis::ui_info("Copying the intermediate images needed:")
-  intermediate_images <- copy_images('.', dest, plural_type) #%>%
+  intermediate_images <- copy_images('.', dest, plural_type) #|>
     # purrr::walk(usethis::ui_todo)
   cli::cli_ul(intermediate_images)
 
@@ -273,7 +277,7 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   rd_fragment <- readLines(
     glue::glue("{resource}.md"),
     warn = FALSE, encoding = "UTF-8"
-  ) %>%
+  ) |>
     # images substitution
     rd_postprocessing(intermediate_images)
 
@@ -399,8 +403,8 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
     return(invisible(FALSE))
   }
 
-  res <- metadata_table[[1]] %>%
-    magrittr::set_names(., .) %>%
+  res <- metadata_table[[1]] |>
+    purrr::set_names() |>
     purrr::map(
       .f = function(resource) {
 
@@ -422,12 +426,12 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
         # }
 
         filter_expr <- rlang::parse_expr(glue::glue("{resource_type} == '{resource}'"))
-        resource_metadata <- metadata_table %>%
+        resource_metadata <- metadata_table |>
           dplyr::filter(!!filter_expr)
 
         cli::cli_alert_info("Copying the intermediate images needed:")
         # usethis::ui_info("Copying the intermediate images needed:")
-        intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) #%>%
+        intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) #|>
           # purrr::walk(usethis::ui_todo)
         cli::cli_ul(intermediate_images)
 
@@ -532,18 +536,18 @@ rendered_summary <- function(rendered_pages) {
   # usethis::ui_line()
   # usethis::ui_info("The following pages were rendered:")
   cli::cli_alert_info("The following pages were rendered:")
-  purrr::flatten(rendered_pages) %>%
-    purrr::keep(isTRUE) %>%
-    names() %>%
+  purrr::flatten(rendered_pages) |>
+    purrr::keep(isTRUE) |>
+    names() |>
     # purrr::walk(usethis::ui_todo)
     cli::cli_ul()
 
   # usethis::ui_line()
   # usethis::ui_info("The following pages were skipped:")
   cli::cli_alert_info("The following pages were skipped:")
-  purrr::flatten(rendered_pages) %>%
-    purrr::keep(isFALSE) %>%
-    names() %>%
+  purrr::flatten(rendered_pages) |>
+    purrr::keep(isFALSE) |>
+    names() |>
     # purrr::walk(usethis::ui_todo)
     cli::cli_ul()
 
@@ -622,9 +626,9 @@ frontmatter_generator <- function(resource_metadata, category, .external = FALSE
         url_source = resource_metadata$url_source,
         url_docs = resource_metadata$url_docs
       )
-    ) %>%
-    purrr::map(nas_to_empty_strings) %>%
-    ymlthis::as_yml() %>%
+    ) |>
+    purrr::map(nas_to_empty_strings) |>
+    ymlthis::as_yml() |>
     capture_yml()
 
   if (isTRUE(.external)) {
@@ -681,8 +685,8 @@ md_content_generator <- function(resource_metadata, .external = FALSE) {
 #' @noRd
 pq__text_to_vector_parser <- function(pq__text) {
 
-  res <- stringr::str_remove_all(pq__text, '[{}\"]') %>%
-    stringr::str_split(',') %>%
+  res <- stringr::str_remove_all(pq__text, '[{}\"]') |>
+    stringr::str_split(',') |>
     purrr::flatten_chr()
 
   # if length of the pq__text is one (i.e. one author), then convert to list
@@ -707,9 +711,9 @@ pq__text_to_vector_parser <- function(pq__text) {
 #'
 #' @noRd
 get_resource_last_commit_from_db <- function(resource_id, .con) {
-  dplyr::tbl(.con, 'resources_last_commit') %>%
-    dplyr::filter(id == resource_id) %>%
-    dplyr::collect() %>%
+  dplyr::tbl(.con, 'resources_last_commit') |>
+    dplyr::filter(id == resource_id) |>
+    dplyr::collect() |>
     dplyr::pull(last_commit_hash)
 }
 
@@ -735,9 +739,9 @@ get_resource_last_commit_from_repo <- function(repo, org, .branch) {
     config = httr::authenticate(
       user = gh::gh_whoami()$login, password = Sys.getenv("GITHUB_PAT")
     )
-  ) %>%
-    httr::content() %>%
-    magrittr::extract2('sha')
+  ) |>
+    httr::content() |>
+    purrr::pluck('sha')
 }
 
 #' Update resource last commit in the database
@@ -918,7 +922,7 @@ rd_postprocessing <- function(rd_fragment, intermediate_images) {
   purrr::map(
     intermediate_images,
     ~ which(stringr::str_detect(rd_fragment, .x))
-  ) %>%
+  ) |>
     purrr::iwalk(
       function(index, image_path) {
         image_shorthand <- glue::glue(
