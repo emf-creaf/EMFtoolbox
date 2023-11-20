@@ -252,17 +252,31 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
 
   # if file does not exists, it doesn't matter if should be updated or not
   if (!fs::file_exists(input_file)) {
-    cli::cli_abort("{input_file} file not found in {resource} repository")
-    # usethis::ui_stop("{input_file} file not found in {resource} repository")
+    cli::cli_alert_info("{input_file} not found. Cheking if quarto is required for {resource}")
+    # can be that is a quarto (qmd) document
+    input_file <- fs::path_ext_set(input_file, "qmd")
+    if (!fs::file_exists(input_file)) {
+      cli::cli_abort("No Rmd or qmd file found in {resource} repository. Aborting.")
+    }
   }
 
-  # render the Rmd
-  rmarkdown::render(
-    input = input_file,
-    output_format = rmarkdown::md_document(variant = 'gfm'),
-    output_file = glue::glue("{resource}.md"),
-    quiet = TRUE
-  )
+  # if Rmd, reder with rmarkdown, if not render with quarto
+  if (fs::path_ext(input_file) == "Rmd") {
+    # render the Rmd
+    rmarkdown::render(
+      input = input_file,
+      output_format = rmarkdown::md_document(variant = 'gfm'),
+      output_file = glue::glue("{resource}.md"),
+      quiet = TRUE
+    )
+  } else {
+    quarto::quarto_render(
+      input = input_file,
+      output_format = "hugo-md",
+      output_file = glue::glue("{resource}.md"),
+      quiet = TRUE
+    )
+  }
 
   # copy intermediate images
   cli::cli_alert_info("Copying the intermediate images needed:")
@@ -280,6 +294,14 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
   ) |>
     # images substitution
     rd_postprocessing(intermediate_images)
+
+  # in case of qmd, the yaml front matter is still there, we need to remove it. Logic as follows,
+  # if the first element of the fragment lines is "---" then remove all the first elements until just
+  # after the second "---".
+  if (rd_fragment[1] == "---") {
+    #
+    rd_fragment <- rd_fragment[(which(rd_fragment == "---")[2] + 1):length(rd_fragment)]
+  }
 
   # create the yaml frontmatter from the metadata
   yaml_frontmatter <- frontmatter_generator(resource_metadata, plural_type)
