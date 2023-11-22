@@ -270,12 +270,27 @@ render_rmd <- function(resource, type, .con, .force, .web_path) {
       quiet = TRUE
     )
   } else {
-    quarto::quarto_render(
-      input = input_file,
-      output_format = "hugo-md",
-      output_file = glue::glue("{resource}.md"),
-      quiet = TRUE
+    cli::cli_alert_info("Rendering quarto document")
+    system2(
+      "quarto",
+      args = c(paste0("render ", input_file), "--to hugo-md", paste0("--output ", resource, ".md"))
     )
+
+    # quarto::quarto_render(
+    #   input = input_file,
+    #   output_format = "markdown_strict+raw_html+all_symbols_escapable+backtick_code_blocks+fenced_code_blocks+space_in_atx_header+intraword_underscores+lists_without_preceding_blankline+shortcut_reference_links+autolink_bare_uris+emoji+footnotes+gfm_auto_identifiers+pipe_tables+strikeout+task_lists+tex_math_dollars+yaml_metadata_block+definition_lists+smart",
+    #   # metadata = list(
+    #   #   "format" = list(
+    #   #     "hugo-md" = list(
+    #   #       "mermaid-format" = "svg",
+    #   #       "keep-yaml" = FALSE,
+    #   #       "preserve-yaml" = FALSE
+    #   #     )
+    #   #   )
+    #   # ),
+    #   output_file = glue::glue("{resource}.md"),
+    #   quiet = FALSE
+    # )
   }
 
   # copy intermediate images
