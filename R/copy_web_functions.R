@@ -229,7 +229,7 @@ copy_emf_web <- function(dest) {
   cli::cli_alert_info("Building site with Hugo")
   # usethis::ui_info("Building site with Hugo")
   withr::with_options(
-    list(blogdown.hugo.version = "0.92.1"), blogdown::build_site()
+    list(blogdown.hugo.version = "0.121.1"), blogdown::build_site()
   )
 
   # check the build
