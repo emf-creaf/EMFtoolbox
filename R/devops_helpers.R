@@ -278,3 +278,69 @@ resource_repositories_info <- function(.con = NULL) {
     )
   )
 }
+
+#' Debugging render process
+#'
+#' Simulate resource render process from scratch
+#'
+#' This functions simulates all the workflow for rendering a resource, from the
+#' metadata collection to the render_rmd. This allows for easy iteration process
+#' to fix a resource that is not rendering ok, or to test different formats.
+#' This function is only useful for workflows, tech_docs and software resources
+#'
+#' @noRd
+#' @param resource resource id
+#' @param resource_type resource type
+#' @param test_web_path path to web folder (for render_rmd). Default to a temporal folder
+#' @param test_envvars list with environmental variables needed for rendering (database...)
+#' @param test_yml_path path to the resource yml file (for collect_metadata)
+#' @param test_folder_path path to the testing folder in the Hugo project. This allows for
+#'  later inspection and Hugo rendering
+#'
+#' @return TRUE if folder has been created in the \code{test_folder_path}
+debug_render_resource <- function(
+    resource,
+    resource_type,
+    test_web_path = emf_temp_folder(),
+    test_envvars = list(),
+    test_yml_path = fs::path(),
+    test_folder_path = fs::path()
+) {
+
+  # join envvars
+  envvars <- c(test_envvars, WEB_PATH = test_web_path)
+
+  # local env
+  withr::local_envvar(envvars)
+
+  # connect to database
+  test_database <- metadata_db_con()
+
+  # on exit/error/unexpected, remove the resource from test database
+  withr::defer({
+    delete_resource_from_db(resource, con = test_database)
+    unlink(Sys.getenv("WEB_PATH"), recursive = TRUE)
+  })
+
+  # collect metadata
+  collect_metadata(
+    con = test_database,
+    yml_file = fs::path(test_yml_path, resource, "metadata.yml"),
+    .dry = FALSE
+  )
+
+  # render rmd/quarto
+  render_rmd(
+    resource, resource_type,
+    .con = test_database, .web_path = Sys.getenv("WEB_PATH"), .force = FALSE
+  )
+
+  # copy to web test folder
+  fs::dir_copy(
+    fs::path(Sys.getenv("WEB_PATH"), "content", glue::glue("{resource_type}s"), resource),
+    fs::path(test_folder_path, resource),
+    overwrite = TRUE
+  )
+
+  return(fs::dir_exists(fs::path(test_folder_path, resource)))
+}
