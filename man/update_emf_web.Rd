@@ -15,7 +15,8 @@ update_emf_web(
   prod_pass = Sys.getenv("PROD_PASS"),
   .con = NULL,
   .force = FALSE,
-  .dry_push = FALSE
+  .dry_push = FALSE,
+  .copy_anyways = FALSE
 )
 }
 \arguments{
@@ -36,6 +37,9 @@ default to TRUE}
 everything is up-to-date}
 
 \item{.dry_push}{logical to pass to  \code{\link{commit_push_repo}}}
+
+\item{.copy_anyways}{loigical indicating if Hugo rendering and copy to
+production must be done independently of repository changes. Default to FALSE.}
 }
 \value{
 invisible FALSE if no changes are to be commited and prod is not

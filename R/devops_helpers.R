@@ -136,6 +136,62 @@ update_emf_web <- function(
 }
 
 
+
+#' Update Documentation site
+#'
+#' This function retrieves the latest github version of the docs and update the
+#' doc server
+#'
+#' @param dest path to the production folder
+#'
+#' @return invisible TRUE if all goes well, error if not
+#'
+#' @details This function is intended to be used in the doc server, it has not
+#'   remote option.
+#'
+#' @export
+update_docs_site <- function(dest) {
+  # clone the latest version of the doc site
+  clone_from_github(repo = 'emfverse_docs_site', org = 'emf-creaf')
+
+  # build the site
+  cli::cli_alert_info("Rendering site with Quarto")
+  system2("quarto", args = "render")
+  cli::cli_alert_success("Done")
+
+  # copy web
+  cli::cli_alert_info("Copying rendered site to production")
+  origin <- "_site"
+  dest_guide <- fs::path(dest, "development_guide")
+  # remove dest folder contents, but recreate the development guide one!!
+  fs::file_delete(fs::dir_ls(dest))
+  fs::dir_create(dest_guide)
+  # copy new web data
+  fs::dir_copy(origin, dest, TRUE)
+
+  # development guide (is yet another repository)
+  # clone the latest version of the doc site
+  clone_from_github(repo = 'development_guide', org = 'emf-creaf')
+
+  # build the site
+  cli::cli_alert_info("Rendering development guide")
+  system2("quarto", args = "render")
+  cli::cli_alert_success("Done")
+
+  # copy web
+  cli::cli_alert_info("Copying development guide to production")
+  origin_guide <- "_book"
+  # remove dest folder contents
+  fs::file_delete(fs::dir_ls(dest_guide))
+  # copy new web data
+  fs::dir_copy(origin_guide, dest_guide, TRUE)
+
+  # return TRUE if everything is ok
+  cli::cli_alert_success("Docs site generated without errors")
+  return(invisible(TRUE))
+}
+
+
 # metadata collection GA remote repos update ------------------------------
 
 
