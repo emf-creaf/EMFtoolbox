@@ -19,6 +19,8 @@
 #' @param .force logical indicating if the render shoud be forced even if
 #'   everything is up-to-date
 #' @param .dry_push logical to pass to  \code{\link{commit_push_repo}}
+#' @param .copy_anyways loigical indicating if Hugo rendering and copy to
+#'   production must be done independently of repository changes. Default to FALSE.
 #'
 #' @return invisible FALSE if no changes are to be commited and prod is not
 #'   updated (unless \code{.force = TRUE}). TRUE if everything goes correctly.
@@ -32,7 +34,7 @@ update_emf_web <- function(
     prod_folder = Sys.getenv("PROD_FOLDER"),
     prod_host = Sys.getenv("PROD_HOST"),
     prod_pass = Sys.getenv("PROD_PASS"),
-    .con = NULL, .force = FALSE, .dry_push = FALSE
+    .con = NULL, .force = FALSE, .dry_push = FALSE, .copy_anyways = FALSE
 ) {
   # pretty print
   cli::cli_alert_info(c(
@@ -79,9 +81,11 @@ update_emf_web <- function(
     # )
     # if no force, exit gracefully
     if (!.force) {
-      cli::cli_alert_success("EMF web up-to-date, not updating and exiting.")
-      # usethis::ui_done("EMF web up-to-date, not updating and exiting.")
-      return(invisible(FALSE))
+      if (!.copy_anyways) {
+        cli::cli_alert_success("EMF web up-to-date, not updating and exiting.")
+        # usethis::ui_done("EMF web up-to-date, not updating and exiting.")
+        return(invisible(FALSE))
+      }
     }
   }
 
