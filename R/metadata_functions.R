@@ -371,10 +371,22 @@ prepare_update_metadata_tables <- function(metadata_yml) {
 
     links_update_table = tibble::tibble(
       id = metadata_yml$id,
-      url_pdf = metadata_yml$links$url_pdf,
-      url_doi = metadata_yml$links$url_doi,
-      url_docs = metadata_yml$links$url_docs,
-      url_source = metadata_yml$links$url_source
+      url_pdf = ifelse(
+        is_na_or_null(metadata_yml$links$url_pdf),
+        NA_character_, metadata_yml$links$url_pdf
+      ),
+      url_doi = ifelse(
+        is_na_or_null(metadata_yml$links$url_doi),
+        NA_character_, metadata_yml$links$url_doi
+      ),
+      url_docs = ifelse(
+        is_na_or_null(metadata_yml$links$url_docs),
+        NA_character_, metadata_yml$links$url_docs
+      ),
+      url_source = ifelse(
+        is_na_or_null(metadata_yml$links$url_source),
+        NA_character_, metadata_yml$links$url_source
+      )
     )
   )
 
