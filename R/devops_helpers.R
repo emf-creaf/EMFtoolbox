@@ -359,12 +359,12 @@ resource_repositories_info <- function(.con = NULL) {
 #'
 #' @return TRUE if folder has been created in the \code{test_folder_path}
 debug_render_resource <- function(
-    resource,
-    resource_type,
-    test_web_path = emf_temp_folder(),
-    test_envvars = list(),
-    test_yml_path = fs::path(),
-    test_folder_path = fs::path()
+  resource,
+  resource_type,
+  test_web_path = emf_temp_folder(),
+  test_envvars = list(),
+  test_yml_path = fs::path(),
+  test_folder_path = fs::path()
 ) {
 
   # join envvars

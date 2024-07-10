@@ -867,6 +867,14 @@ capture_yml <- function(yml) {
 copy_images <- function(folder = '.', dest, category, formats = c('png', 'jpg', 'svg')) {
   # list images in folders (by formats) and copy them to dest
 
+  if (category == "softworks" && fs::file_exists(fs::path(folder, "man", "figures", "logo.png"))) {
+    fs::file_copy(
+      fs::path(folder, "man", "figures", "logo.png"),
+      fs::path("featured.png"),
+      overwrite = TRUE
+    )
+  }
+
   # list of images
   images_list <- fs::dir_ls(
     path = folder,
