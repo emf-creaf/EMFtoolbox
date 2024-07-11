@@ -873,7 +873,10 @@ copy_images <- function(folder = '.', dest, category, formats = c('png', 'jpg', 
     recurse = TRUE,
     type = "file",
     regexp = glue::glue("[.]{glue::glue_collapse(formats, '|')}$")
-  )
+  ) |>
+    # in softworks can be images for vignettes or raw data or other that we dont
+    # want to copy
+    purrr::discard(.p = ~ stringr::str_detect(.x, "vignettes|data-raw"))
 
   if (!any(stringr::str_detect(images_list, '^featured.png$'))) {
     images_list <- c(
