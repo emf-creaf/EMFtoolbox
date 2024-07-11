@@ -967,7 +967,6 @@ rd_postprocessing <- function(rd_fragment, intermediate_images) {
     purrr::discard(.p = ~ length(.x) < 1) |>
     purrr::iwalk(
       function(index, image_path) {
-        browser()
         # logo, we need to skip the shorthand embedding
         if (!stringr::str_detect(image_path, "logo")) {
           image_shorthand <- glue::glue(
