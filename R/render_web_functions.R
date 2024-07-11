@@ -867,14 +867,6 @@ capture_yml <- function(yml) {
 copy_images <- function(folder = '.', dest, category, formats = c('png', 'jpg', 'svg')) {
   # list images in folders (by formats) and copy them to dest
 
-  # if (category == "softworks" && fs::file_exists(fs::path(folder, "man", "figures", "logo.png"))) {
-  #   fs::file_copy(
-  #     fs::path(folder, "man", "figures", "logo.png"),
-  #     fs::path(folder, "featured.png"),
-  #     overwrite = TRUE
-  #   )
-  # }
-
   # list of images
   images_list <- fs::dir_ls(
     path = folder,
@@ -951,7 +943,11 @@ is_na_or_null <- function(x) {
 #'
 #' Necessary postprocessing steps after rendering the Rd file for Hugo.
 #' For now adding image shorthands to substitute the rmarkdown normal image
-#' tag
+#' tag.
+#' 
+#' @section Logos:
+#' In softworks, i.e. R packages, if the package has a logo and is added to the
+#' README, the postprocessing step must be avoided for this image.
 #'
 #' @param rd_fragment lines from the generated Rd file in the render step
 #' @param intermediate_images vector of image names as obtained from
@@ -970,10 +966,13 @@ rd_postprocessing <- function(rd_fragment, intermediate_images) {
   ) |>
     purrr::iwalk(
       function(index, image_path) {
-        image_shorthand <- glue::glue(
-          '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = FALSE) |> purrr::flatten_chr() |> dplyr::last()}" class="single-image" >}}}}'
-        )
-        rd_fragment[index] <<- image_shorthand
+        # logo, we need to skip it
+        if (!stringr::str_detect(image_path, "logo")) {
+          image_shorthand <- glue::glue(
+            '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = FALSE) |> purrr::flatten_chr() |> dplyr::last()}" class="single-image" >}}}}'
+          )
+          rd_fragment[index] <<- image_shorthand
+        }
       }
     )
 
