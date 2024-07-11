@@ -964,14 +964,25 @@ rd_postprocessing <- function(rd_fragment, intermediate_images) {
     intermediate_images,
     ~ which(stringr::str_detect(rd_fragment, .x))
   ) |>
+    purrr::discard(.p = ~ length(.x) < 1) |>
     purrr::iwalk(
       function(index, image_path) {
-        # logo, we need to skip it
+        browser()
+        # logo, we need to skip the shorthand embedding
         if (!stringr::str_detect(image_path, "logo")) {
           image_shorthand <- glue::glue(
             '{{{{< figure src="{stringr::str_split(image_path, "/", simplify = FALSE) |> purrr::flatten_chr() |> dplyr::last()}" class="single-image" >}}}}'
           )
           rd_fragment[index] <<- image_shorthand
+        } else {
+          # we left the logo as is, but changing the src, as is different in the web
+          rd_fragment[index] <<- rd_fragment[index] |>
+            stringr::str_replace_all(
+              pattern = image_path,
+              replacement = stringr::str_split(image_path, "/", simplify = FALSE) |>
+                purrr::flatten_chr() |>
+                dplyr::last()
+            )
         }
       }
     )
