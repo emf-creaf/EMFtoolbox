@@ -236,7 +236,8 @@ copy_emf_web <- function(dest) {
   build_check <- check_hugo_build(content = 'content', public = 'public')
   # if the build fails, stop
   if (!build_check) {
-    cli::cli_alert_warning("EMF web built with errors")
+    # cli::cli_alert_warning("EMF web built with errors")
+    cli::cli_abort("EMF web built with errors")
     # usethis::ui_warn("EMF web built with errors")
   }
 
