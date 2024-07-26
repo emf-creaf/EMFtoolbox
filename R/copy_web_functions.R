@@ -240,7 +240,7 @@ copy_emf_web <- function(dest) {
       "--themesDir", shQuote("themes"),
       "--theme", shQuote("emf_hugo_theme"),
       # only needed to avoid weird OOM error in Hugo
-      "--templateMetrics"
+      "--templateMetrics", "--templateMetricsHints"
     )
   )
 
