@@ -226,10 +226,18 @@ copy_emf_web <- function(dest) {
   }
 
   # build the site
-  cli::cli_alert_info("Building site with Hugo")
   # usethis::ui_info("Building site with Hugo")
-  withr::with_options(
-    list(blogdown.hugo.version = "0.129.0"), blogdown::build_site()
+  # withr::with_options(
+  #   list(blogdown.hugo.version = "0.129.0"), blogdown::build_site()
+  # )
+  cli::cli_alert_info("Building site with Hugo")
+  xfun::system3(
+    # find hugo will find the latest version installed
+    blogdown::find_hugo(),
+    # normal args
+    "-d", "public", "--themesDir", "themes", "--theme", "emf_hugo_theme",
+    # only needed to avoid weird OOM error in Hugo
+    "--templateMetrics"
   )
 
   # check the build

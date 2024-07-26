@@ -39,6 +39,7 @@ Imports:
     tibble,
     usethis,
     withr,
+    xfun,
     ymlthis
 Suggests: 
     testthat (>= 3.0.0)
