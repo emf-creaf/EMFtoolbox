@@ -234,10 +234,14 @@ copy_emf_web <- function(dest) {
   xfun::system3(
     # find hugo will find the latest version installed
     blogdown::find_hugo(),
-    # normal args
-    "-d", "public", "--themesDir", "themes", "--theme", "emf_hugo_theme",
-    # only needed to avoid weird OOM error in Hugo
-    "--templateMetrics"
+    args = c(
+      # normal args
+      "-d", shQuote("public"),
+      "--themesDir", shQuote("themes"),
+      "--theme", shQuote("emf_hugo_theme"),
+      # only needed to avoid weird OOM error in Hugo
+      "--templateMetrics"
+    )
   )
 
   # check the build
