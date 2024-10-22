@@ -450,26 +450,16 @@ render_metadata <- function(resources, type, .con, .force, .web_path) {
           "i" = "Starting render of {resource} ({type})",
           "-----"
         ))
-        # usethis::ui_line()
-        # usethis::ui_info("Starting render of {resource} ({type})")
-        # usethis::ui_line("-----")
 
         dest <- fs::path(.web_path, "content", plural_type, resource)
         create_directory(dest)
-        # if dest folder does not exists, we must create it
-        # if (!fs::dir_exists(dest)) {
-        #   usethis::ui_info("Creating {resource} folder at {dest}")
-        #   fs::dir_create(dest)
-        # }
 
         filter_expr <- rlang::parse_expr(glue::glue("{resource_type} == '{resource}'"))
         resource_metadata <- metadata_table |>
           dplyr::filter(!!filter_expr)
 
         cli::cli_alert_info("Copying the intermediate images needed:")
-        # usethis::ui_info("Copying the intermediate images needed:")
-        intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category) #|>
-          # purrr::walk(usethis::ui_todo)
+        intermediate_images <- copy_images(folder = emf_temp_folder(), dest, category)
         cli::cli_ul(intermediate_images)
 
         yaml_frontmatter <- frontmatter_generator(
