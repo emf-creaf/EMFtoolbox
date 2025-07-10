@@ -1,0 +1,24 @@
+---
+id: ''
+emf_type: 'pipeline'
+emf_public: false
+emf_automatized: true
+emf_reproducible: true
+emf_draft: true
+emf_data_type: 'internal_data'
+data_repository: ''
+model_repository: ''
+nodes: ['']
+authors: ['']
+tags: ['']
+links:
+  url_pdf: ''
+  url_doi: ''
+  url_docs: ''
+  url_source: ''
+requirements: ['']
+description: ''
+title: ''
+date: ''
+date_lastmod: ''
+---

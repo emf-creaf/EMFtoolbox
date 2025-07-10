@@ -65,6 +65,18 @@ use_metadata_yml <- function(
 }
 
 #' @describeIn use_metadata_yml Equivalent to using \code{use_metadata_yml} with
+#'   \code{.template = system.file('metadata_templates', 'pipeline.yml', package = 'EMFtoolbox')}
+#'
+#' @export
+use_pipeline_yml <- function(..., .write = FALSE) {
+  use_metadata_yml(
+    ...,
+    .template = system.file('metadata_templates', 'pipeline.yml', package = 'EMFtoolbox'),
+    .write = .write
+  )
+}
+
+#' @describeIn use_metadata_yml Equivalent to using \code{use_metadata_yml} with
 #'   \code{.template = system.file('metadata_templates', 'workflow.yml', package = 'EMFtoolbox')}
 #'
 #' @export
@@ -861,7 +873,7 @@ metadata_db_con <- function(
 #'
 #' @export
 use_public_table <- function(
-  resource_type = c('workflows', 'tech_docs', 'models', 'data', 'softworks', 'all'),
+  resource_type = c('workflows', 'pipelines', 'tech_docs', 'models', 'data', 'softworks', 'all'),
   ...,
   .con = NULL
 ) {
@@ -882,6 +894,13 @@ use_public_table <- function(
   table_name <- 'resources'
   if (resource_type != 'all') {
     table_name <- glue::glue("public_{resource_type}")
+    if (resource_type == "pipelines") {
+      table_name <- glue::glue("internal_{resource_type}")
+      res <- dplyr::tbl(.con, table_name) |>
+        dplyr::filter(...) |>
+        dplyr::collect()
+      return(res)
+    }
   }
 
   res <- dplyr::tbl(.con, table_name) |>
@@ -905,6 +924,23 @@ use_public_table <- function(
 #' @export
 public_workflows <- function(...) {
   use_public_table(resource_type = 'workflows', ...)
+}
+
+#' Retrieve the public pipelines table.
+#'
+#' Retrieve the public pipelines table.
+#'
+#' @param ... arguments for \code{\link{use_public_tables}} except for \code{resource_type}. If the former is
+#'   specified and error is raised.
+#'
+#' @return A tibble with the public resources table queried
+#'
+#' @examples
+#' use_public_table('pipelines')
+#'
+#' @export
+internal_pipelines <- function(...) {
+  use_public_table(resource_type = 'pipelines', ...)
 }
 
 #' Retrieve the public softworks table.

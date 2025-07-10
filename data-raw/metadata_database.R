@@ -284,6 +284,14 @@ FROM resources
     ",
       .con = emf_database
     ),
+    internal_pipelines = glue::glue_sql(
+      "CREATE OR REPLACE VIEW internal_pipelines AS
+      SELECT resources.id AS pipeline,
+      {common_view_code}
+      WHERE resources.emf_type = 'pipeline';
+    ",
+      .con = emf_database
+    ),
     public_tech_docs = glue::glue_sql(
       "CREATE OR REPLACE VIEW public_tech_docs AS
       SELECT resources.id AS tech_doc,

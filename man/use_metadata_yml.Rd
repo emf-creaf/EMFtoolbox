@@ -2,6 +2,7 @@
 % Please edit documentation in R/metadata_functions.R
 \name{use_metadata_yml}
 \alias{use_metadata_yml}
+\alias{use_pipeline_yml}
 \alias{use_workflow_yml}
 \alias{use_tech_doc_yml}
 \alias{use_data_yml}
@@ -14,6 +15,8 @@ use_metadata_yml(
   .template = system.file("metadata_templates", "core.yml", package = "EMFtoolbox"),
   .write = FALSE
 )
+
+use_pipeline_yml(..., .write = FALSE)
 
 use_workflow_yml(..., .write = FALSE)
 
@@ -46,6 +49,9 @@ resource
 }
 \section{Functions}{
 \itemize{
+\item \code{use_pipeline_yml()}: Equivalent to using \code{use_metadata_yml} with
+\code{.template = system.file('metadata_templates', 'pipeline.yml', package = 'EMFtoolbox')}
+
 \item \code{use_workflow_yml()}: Equivalent to using \code{use_metadata_yml} with
 \code{.template = system.file('metadata_templates', 'workflow.yml', package = 'EMFtoolbox')}
 

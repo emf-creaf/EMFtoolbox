@@ -26,7 +26,6 @@ use_emf_ga <- function(.template) {
     cli::cli_abort(
       "Template not found at {system.file(fs::path('ga_templates'), package = 'EMFtoolbox')}. Check available templates at that location."
     )
-    # usethis::ui_stop("Template not found at {system.file(fs::path('ga_templates'), package = 'EMFtoolbox')}. Check available templates at that location.")
   }
 
   ga_template <- base::readLines(template_path, encoding = "UTF-8", warn = FALSE)
