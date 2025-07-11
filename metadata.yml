@@ -4,6 +4,7 @@ emf_type: softwork
 emf_public: false
 emf_automatized: true
 emf_reproducible: false
+emf_data_type: internal_data
 emf_draft: false
 nodes:
 - style_guide
@@ -12,24 +13,14 @@ authors:
 - vgranda
 - mcaceres
 - rmolowny
-thematic: emf_internal
 tags:
 - R
 - server
 - devops
 requirements:
-- R (>= 4)
+- "R (>= 4)"
 date: 2021-08-11
-date_lastmod: 2022-02-02
+date_lastmod: 2025-07-11
 links:
   url_source: https://github.com/emf-creaf/EMFtoolbox
-Package: EMFtoolbox
-Title: Tool Box For The EMFverse
-Version: 0.0.0.9000
-Description: Tool box for the EMFverse.
-License: MIT + file LICENSE
-Encoding: UTF-8
-LazyData: true
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
 ---
