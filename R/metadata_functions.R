@@ -1132,6 +1132,18 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
     )
 }
 
+#' Generate resource nodes graph plot.
+#'
+#' Generate resource nodes graph plot, indicating the relationships between them.
+#'
+#' @param .con metadata database connetion
+#'
+#' @return An echarts4r object (htmlwidget)
+#'
+#' @examples
+#' nodes_diagram_generator()
+#'
+#' @export
 nodes_diagram_generator <- function(.con = NULL) {
   # connect to database if needed
   if (is.null(.con)) {
