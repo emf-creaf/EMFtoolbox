@@ -23,6 +23,7 @@ Imports:
     DBI,
     dbplyr,
     dplyr,
+    echarts4r,
     fs,
     gert,
     glue,

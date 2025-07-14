@@ -1131,3 +1131,68 @@ external_models_transform <- function(external_models_file = 'ProcessBasedModels
       nodes, authors, requirements, links
     )
 }
+
+nodes_diagram_generator <- function(.con = NULL) {
+  # connect to database if needed
+  if (is.null(.con)) {
+    cli::cli_alert_info(
+      "Connection to the database not provided. Attempting to connect using environment variables."
+    )
+    .con <- metadata_db_con()
+  }
+
+  edges_table <- dplyr::tbl(.con, "nodes") |>
+    dplyr::filter(node != "", id != "") |>
+    dplyr::rename(from = node, to = id) |>
+    dplyr::select(-node_pk) |>
+    dplyr::collect() |>
+    dplyr::mutate(size = 5)
+
+  nodes_table <- dplyr::tibble(
+    id = unique(c(unique(edges_table$from), unique(edges_table$to)))
+  ) |>
+    dplyr::left_join(
+      dplyr::tbl(.con, "resources") |>
+        dplyr::select(id, emf_type, emf_public) |>
+        dplyr::collect(),
+      by = "id"
+    ) |>
+    dplyr::mutate(size = 25, value = NA) |>
+    dplyr::filter(!is.na(emf_type)) |>
+    dplyr::arrange(emf_type)
+
+  # DiagrammeR option
+  # nodes_graph <- DiagrammeR::create_graph() |>
+  #   DiagrammeR::add_nodes_from_table(
+  #     nodes_table, label_col = id
+  #   ) |>
+  #   DiagrammeR::add_edges_from_table(
+  #     edges_table, from, to, label
+  #   )
+
+  # echarts4r option
+  echarts4r::e_charts() |>
+    echarts4r::e_graph() |>
+    # echarts4r::e_graph(
+    #   layout = "circular", 
+    #   circular = list(
+    #     rotateLabel = TRUE
+    #   ),
+    #   roam = TRUE,
+    #   lineStyle = list(
+    #     color = "source",
+    #     curveness = 0.3
+    #   ),
+    #   label = list(
+    #     position = "right",
+    #     formatter = "{b}"
+    #   )
+    # ) |>
+    echarts4r::e_graph_nodes(
+      nodes = nodes_table,
+      names = id, value = value, size = size, category = emf_type
+    ) |>
+    echarts4r::e_graph_edges(edges_table, from, to, size = size) |>
+    echarts4r::e_tooltip()
+
+}
