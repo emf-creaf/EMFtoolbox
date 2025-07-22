@@ -1169,7 +1169,12 @@ nodes_diagram_generator <- function(.con = NULL) {
         dplyr::collect(),
       by = "id"
     ) |>
-    dplyr::mutate(size = 25, value = NA) |>
+    dplyr::mutate(
+      size = 25, value = emf_public,
+      emf_public = dplyr::if_else(
+        emf_public, "circle", "diamond"
+      )
+    ) |>
     dplyr::filter(!is.na(emf_type)) |>
     dplyr::arrange(emf_type)
 
@@ -1202,7 +1207,8 @@ nodes_diagram_generator <- function(.con = NULL) {
     # ) |>
     echarts4r::e_graph_nodes(
       nodes = nodes_table,
-      names = id, value = value, size = size, category = emf_type
+      names = id, value = value, size = size,
+      category = emf_type, symbol = emf_public
     ) |>
     echarts4r::e_graph_edges(edges_table, from, to, size = size) |>
     echarts4r::e_tooltip()
