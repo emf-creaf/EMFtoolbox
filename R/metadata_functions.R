@@ -1170,7 +1170,10 @@ nodes_diagram_generator <- function(.con = NULL) {
       by = "id"
     ) |>
     dplyr::mutate(
-      size = 25, value = emf_public,
+      size = 25,
+      value = dplyr::if_else(
+        emf_public, "public", "internal"
+      ),
       emf_public = dplyr::if_else(
         emf_public, "circle", "diamond"
       )
