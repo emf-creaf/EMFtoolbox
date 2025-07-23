@@ -1192,22 +1192,29 @@ nodes_diagram_generator <- function(.con = NULL) {
 
   # echarts4r option
   echarts4r::e_charts() |>
-    echarts4r::e_graph() |>
-    # echarts4r::e_graph(
-    #   layout = "circular", 
-    #   circular = list(
-    #     rotateLabel = TRUE
-    #   ),
-    #   roam = TRUE,
-    #   lineStyle = list(
-    #     color = "source",
-    #     curveness = 0.3
-    #   ),
-    #   label = list(
-    #     position = "right",
-    #     formatter = "{b}"
-    #   )
-    # ) |>
+    echarts4r::e_graph(
+      # layout = "circular",
+      # circular = list(
+      #   rotateLabel = TRUE
+      # ),
+      # label = list(
+      #   position = "right",
+      #   formatter = "{b}"
+      # ),
+      force = list(
+        edgeLength = 45,
+        repulsion = 100
+      ),
+      roam = TRUE,
+      draggable = TRUE,
+      emphasis = list(
+        disabled = FALSE,
+        focus = "adjacency"
+      ),
+      lineStyle = list(
+        curveness = 0
+      )
+    ) |>
     echarts4r::e_graph_nodes(
       nodes = nodes_table,
       names = id, value = value, size = size,
