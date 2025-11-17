@@ -27,6 +27,7 @@ Imports:
     fs,
     gert,
     glue,
+    ntfy,
     pkgdown,
     pool,
     purrr,

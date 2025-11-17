@@ -70,15 +70,18 @@ check_hugo_build <- function(content, public) {
     # usethis::ui_line("Directories missing:")
     # usethis::ui_todo("{offending_directories}")
 
-    # create a list compatible with email_content argument from send_error_email
-    email_content <- list(
+    # create a list compatible with "message" argument from send_error_notification
+    notification_message <- list(
       explanation_text = "Some pages haven't been built correctly",
       offending_indexes = offending_indexes,
       offending_directories = offending_directories
     )
 
     # send the email
-    send_error_email(email_content, "EMF web: Hugo build failed")
+    send_error_notification(
+      message = notification_message, title = "EMF web: Hugo build failed",
+      topic = "webs", priority = 3
+    )
 
     # return FALSE
     return(invisible(FALSE))
@@ -88,44 +91,72 @@ check_hugo_build <- function(content, public) {
   return(invisible(TRUE))
 }
 
-send_error_email <- function(email_content = NULL, subject_field = "") {
-  # if there is no content, don't do anything
-  if (is.null(email_content)) {
+send_error_notification <- function(
+  message = NULL,
+  title = "",
+  tags = "heavy_multiplication_x",
+  topic = "tests",
+  priority = 1
+) {
+  # no message, no notification
+  if (is.null(message)) {
     return(invisible(FALSE))
   }
 
-  # to/from fields
-  to_field <- "victorgrandagarcia@gmail.com"
-  cc_field <- "v.granda@creaf.uab.cat"
-  from_field <- "victorgrandagarcia@gmail.com"
-
-  # transform the content list in character for the email body
-  body_field <- glue::glue(
-    "{email_content[['explanation_text']]}!!\n",
-    "{glue::glue_collapse(glue::glue('{names(email_content[-1])}:\n{email_content[-1]}'), sep = '\n')}\n"
+  # build the message body
+  message_body <- glue::glue(
+    "{message[['explanation_text']]}!!\n",
+    "{glue::glue_collapse(glue::glue('{names(message[-1])}:\n{message[-1]}'), sep = '\n')}\n"
   )
 
-  # build the email
-  alarm_email <- gmailr::gm_mime(
-    To = to_field,
-    Cc = cc_field,
-    From = from_field,
-    Subject = subject_field,
-    body = body_field
+  # send notification. server, auth, username and pass are env vars
+  ntfy::ntfy_send(
+    message = message_body,
+    title = title,
+    tags = tags,
+    topic = topic,
+    priority = priority
   )
-
-  # auth the sending
-  gmailr::gm_auth_configure(
-    path = Sys.getenv("GMAILR_TOKEN")
-  )
-  gmailr::gm_auth(email = "victorgrandagarcia@gmail.com")
-
-  # send the email
-  gmailr::gm_send_message(alarm_email)
-
-  # if everything is ok, return TRUE
-  return(invisible(TRUE))
 }
+
+# send_error_email <- function(email_content = NULL, subject_field = "") {
+#   # if there is no content, don't do anything
+#   if (is.null(email_content)) {
+#     return(invisible(FALSE))
+#   }
+
+#   # to/from fields
+#   to_field <- "victorgrandagarcia@gmail.com"
+#   cc_field <- "v.granda@creaf.uab.cat"
+#   from_field <- "victorgrandagarcia@gmail.com"
+
+#   # transform the content list in character for the email body
+#   body_field <- glue::glue(
+#     "{email_content[['explanation_text']]}!!\n",
+#     "{glue::glue_collapse(glue::glue('{names(email_content[-1])}:\n{email_content[-1]}'), sep = '\n')}\n"
+#   )
+
+#   # build the email
+#   alarm_email <- gmailr::gm_mime(
+#     To = to_field,
+#     Cc = cc_field,
+#     From = from_field,
+#     Subject = subject_field,
+#     body = body_field
+#   )
+
+#   # auth the sending
+#   gmailr::gm_auth_configure(
+#     path = Sys.getenv("GMAILR_TOKEN")
+#   )
+#   gmailr::gm_auth(email = "victorgrandagarcia@gmail.com")
+
+#   # send the email
+#   gmailr::gm_send_message(alarm_email)
+
+#   # if everything is ok, return TRUE
+#   return(invisible(TRUE))
+# }
 
 copy_web <- function(origin, dest) {
   # we need to copy the public folder from hugo build to the web server folder,
@@ -172,13 +203,14 @@ copy_web <- function(origin, dest) {
     # if no conectivity, restore backup
     fs::dir_delete(dest)
     fs::dir_copy(backup_old_web, dest, TRUE)
-    send_error_email(
-      list(
+    send_error_notification(
+      message = list(
         explanation_text = explanation_text,
         destination = dest,
         origin = origin
       ),
-      subject_field = "EMF web: Update went wrong"
+      title = "EMF web: Update went wrong",
+      topic = "webs", priority = 3
     )
     return(invisible(FALSE))
   }
