@@ -105,8 +105,8 @@ send_error_notification <- function(
 
   # build the message body
   message_body <- glue::glue(
-    "{message[['explanation_text']]}!!\n",
-    "{glue::glue_collapse(glue::glue('{names(message[-1])}:\n{message[-1]}'), sep = '\n')}\n"
+    "{message[['explanation_text']]}!! ",
+    "{glue::glue_collapse(glue::glue('{names(message[-1])}: {message[-1]}'), sep = ' -- ')}"
   )
 
   # send notification. server, auth, username and pass are env vars
@@ -118,45 +118,6 @@ send_error_notification <- function(
     priority = priority
   )
 }
-
-# send_error_email <- function(email_content = NULL, subject_field = "") {
-#   # if there is no content, don't do anything
-#   if (is.null(email_content)) {
-#     return(invisible(FALSE))
-#   }
-
-#   # to/from fields
-#   to_field <- "victorgrandagarcia@gmail.com"
-#   cc_field <- "v.granda@creaf.uab.cat"
-#   from_field <- "victorgrandagarcia@gmail.com"
-
-#   # transform the content list in character for the email body
-#   body_field <- glue::glue(
-#     "{email_content[['explanation_text']]}!!\n",
-#     "{glue::glue_collapse(glue::glue('{names(email_content[-1])}:\n{email_content[-1]}'), sep = '\n')}\n"
-#   )
-
-#   # build the email
-#   alarm_email <- gmailr::gm_mime(
-#     To = to_field,
-#     Cc = cc_field,
-#     From = from_field,
-#     Subject = subject_field,
-#     body = body_field
-#   )
-
-#   # auth the sending
-#   gmailr::gm_auth_configure(
-#     path = Sys.getenv("GMAILR_TOKEN")
-#   )
-#   gmailr::gm_auth(email = "victorgrandagarcia@gmail.com")
-
-#   # send the email
-#   gmailr::gm_send_message(alarm_email)
-
-#   # if everything is ok, return TRUE
-#   return(invisible(TRUE))
-# }
 
 copy_web <- function(origin, dest) {
   # we need to copy the public folder from hugo build to the web server folder,
