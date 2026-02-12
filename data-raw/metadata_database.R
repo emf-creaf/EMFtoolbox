@@ -344,7 +344,7 @@ FROM resources
 
   ## Updating definitions table
   metadata_definitions <- readxl::read_excel('data-raw/metadata_table.xlsx') |>
-    dplyr::select(-`Allowed values`, -`Example value`) |>
+    dplyr::select(-dplyr::any_of(c("Allowed values", "Example value", "Type", "Table"))) |>
     dplyr::rename(
       field = Field,
       scopes = Scopes,
