@@ -23,7 +23,7 @@ matomo_lfc_events <- function(last = 31, period = "day") {
   ) |>
     as.character() |>
     purrr::set_names(c(
-      "LiDAR App", "NFI app", "AllometrApp", "Catdrought App", "Meteoland App",
+      "LiDAR App", "NFI app", "AllometrApp", "Forestdrought App", "Meteoland App",
       "FES App", "DEBOSCAT App"
     ))
 
@@ -44,7 +44,19 @@ matomo_lfc_events <- function(last = 31, period = "day") {
       # stringr::str_detect(Events_EventAction, "mod_dataInput-"),
       Events_EventAction != "updates",
       !stringr::str_detect(Events_EventAction, "shinyjs"),
-      !stringr::str_detect(Events_EventAction, "_open$")
+      !stringr::str_detect(Events_EventAction, "_open$"),
+      !stringr::str_detect(Events_EventAction, "_click$"),
+      !stringr::str_detect(Events_EventAction, "_drag$"),
+      !stringr::str_detect(Events_EventAction, "_drag_"),
+      !stringr::str_detect(Events_EventAction, "_brush$"),
+      !stringr::str_detect(Events_EventAction, "_global_out$"),
+      !stringr::str_detect(Events_EventAction, "_change$"),
+      !stringr::str_detect(Events_EventAction, "_map_resize$"),
+      !stringr::str_detect(Events_EventAction, "waiter"),
+      !stringr::str_detect(Events_EventAction, "_legend_selected$"),
+      !stringr::str_detect(Events_EventAction, "_update$"),
+      !stringr::str_detect(Events_EventAction, "_mouseover"),
+      !stringr::str_detect(Events_EventAction, "_clicked"),
     ) |>
     dplyr::group_by(app_name, Events_EventAction, Events_EventName) |>
     dplyr::summarise(
@@ -82,7 +94,7 @@ matomo_lfc_visits <- function(last = 31, period = "day") {
   ) |>
     as.character() |>
     purrr::set_names(c(
-      "LiDAR App", "NFI app", "AllometrApp", "Catdrought App", "Meteoland App",
+      "LiDAR App", "NFI app", "AllometrApp", "Forestdrought App", "Meteoland App",
       "FES App", "DEBOSCAT App"
     ))
 
