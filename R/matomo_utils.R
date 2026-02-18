@@ -69,89 +69,77 @@ matomo_lfc_events <- function(last = 31, period = "day") {
   return(apps_stats)
 }
 
-#' Visit stats for LFC apps
-#'
-#' Connect to matomo API and retrieve LFC apps visit stats
-#'
-#' This function assumes some environmental variables are available
-#'
-#' @param last number of last records to retrieve
-#' @param period period to retrieve (day, week, month...)
-#'
-#' @export
-matomo_lfc_visits <- function(last = 31, period = "day") {
-  # env vars needed
-  matomo_url <- Sys.getenv("MATOMO_URL")
-  matomo_token <- Sys.getenv("MATOMO_TOKEN")
-  matomo_format <- Sys.getenv("MATOMO_FORMAT")
+.matomo_id_dict <- function(matomo_site = NULL, matomo_name = NULL) {
+  if (!is.null(matomo_site)) {
+    res <- switch(
+      as.character(matomo_site),
+      "1" = "EMF web",
+      "2" = "LFC web",
+      "3" = "LiDAR App",
+      "4" = "NFI app",
+      "5" = "AllometrApp",
+      "6" = "Forestdrought App",
+      "7" = "Meteoland App",
+      "8" = "FES App",
+      "9" = "DEBOSCAT App"
+    )
+  } else {
+    res <- switch(
+      matomo_name,
+      "EMF web" = 1,
+      "LFC web" = 2,
+      "LiDAR App" = 3,
+      "NFI app" = 4,
+      "AllometrApp" = 5,
+      "Forestdrought App" = 6,
+      "Meteoland App" = 7,
+      "FES App" = 8,
+      "DEBOSCAT App" = 9
+    )
+  }
 
-  # site id's are not env vars because they are fixed values that we know
-  matomo_sites <- 3:9
-
-  # queries
-  matomo_queries <- glue::glue(
-    "{matomo_url}?module=API&method=Live.getLastVisitsDetails&flat=1&idSite={matomo_sites}&date=last{last}&period={period}&format=json&token_auth={matomo_token}&filter_limit=-1"
-  ) |>
-    as.character() |>
-    purrr::set_names(c(
-      "LiDAR App", "NFI app", "AllometrApp", "Forestdrought App", "Meteoland App",
-      "FES App", "DEBOSCAT App"
-    ))
-
-  visit_stats <- matomo_queries |>
-    purrr::map(
-      .f = \(query) {
-        jsonlite::read_json(query, simplifyVector = TRUE)
-      }
-    ) |>
-    purrr::discard(.p = purrr::is_empty) |>
-    purrr::list_rbind(names_to = "app_name") |>
-    dplyr::select(
-      app_name, idVisit, country, visitDuration, interactions, actions
-    ) |>
-    dplyr::filter(interactions > 0) |>
-    dplyr::as_tibble()
-
-  return(visit_stats)
+  res
 }
 
-#' Visit stats for EMF web
+#' Visits summary
 #'
-#' Connect to matomo API and retrieve EMF web visit stats
+#' Get visits summary from matomo API
 #'
 #' This function assumes some environmental variables are available
 #'
-#' @param last number of last records to retrieve
-#' @param period period to retrieve (day, week, month...)
+#' @param summary_method character with the matomo module.method required
+#' @param last number of last "period" records to retrieve
+#' @param period summarised period to retrieve (day, week, month...)
+#' @param site_name Name of the site summarise
+#'
+#' @section Matomo methods:
+#' Available methods can be found at https://developer.matomo.org/api-reference/reporting-api
+#' Most common are:
+#'   - VisitsSummary.get
+#'   - Actions.getPageUrls
+#'   - Actions.getPagePages
+#'   - UserCountry.getCountry
 #'
 #' @export
-matomo_emf_visits <- function(last = 31, period = "day") {
+matomo_visits_summary <- function(
+  summary_method = "VisitsSummary.get",
+  last = 31, period = "day",
+  site_name = "EMF web"
+) {
   # env vars needed
   matomo_url <- Sys.getenv("MATOMO_URL")
   matomo_token <- Sys.getenv("MATOMO_TOKEN")
-  matomo_format <- Sys.getenv("MATOMO_FORMAT")
+  matomo_site <- .matomo_id_dict(matomo_name = site_name)
 
-  # site id's are not env vars because they are fixed values that we know
-  matomo_sites <- 1
-
-  # queries
   matomo_query <- glue::glue(
-    "{matomo_url}?module=API&method=Live.getLastVisitsDetails&flat=1&idSite={matomo_sites}&period={period}&date=last{last}&format=json&token_auth={matomo_token}&filter_limit=-1"
+    "{matomo_url}?module=API&method={summary_method}&flat=1&idSite={matomo_site}&date=last{last}&period={period}&format=json&token_auth={matomo_token}&filter_limit=-1"
   )
 
-  visit_stats <- jsonlite::read_json(matomo_query, simplifyVector = TRUE) |>
-    # purrr::discard(.p = purrr::is_empty) |>
-    # purrr::list_rbind(names_to = "app_name") |>
-    dplyr::select(
-      idVisit, serverDate, country,
-      visitDuration, interactions, actions,
-      latitude, longitude
-    ) |>
-    dplyr::filter(interactions > 0, visitDuration > 3) |>
-    dplyr::arrange(serverDate, country, visitDuration) |>
-    dplyr::as_tibble()
-
-  return(visit_stats)
+  jsonlite::read_json(matomo_query, simplifyVector = TRUE) |>
+    purrr::discard(.p = purrr::is_empty) |>
+    purrr::list_rbind(names_to = "date") |>
+    dplyr::as_tibble() |>
+    dplyr::mutate(site_name = site_name)
 }
 
 # lfc_events <- matomo_lfc_events(120)
