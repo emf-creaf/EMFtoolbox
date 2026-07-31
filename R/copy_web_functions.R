@@ -224,7 +224,7 @@ copy_emf_web <- function(dest) {
   #   list(blogdown.hugo.version = "0.129.0"), blogdown::build_site()
   # )
   cli::cli_alert_info("Building site with Hugo")
-  xfun::system3(
+  system2(
     # find hugo will find the latest version installed
     blogdown::find_hugo(),
     args = c(
